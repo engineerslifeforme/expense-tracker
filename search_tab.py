@@ -26,6 +26,9 @@ def display_search(st: stl, data_db: DbAccess):
             'amount',
             'date',
             'description',
+            'valid',
+            'account',
+            'method',
         ]])
     else:
         st.markdown('Enter some data to search')
@@ -57,3 +60,4 @@ def display_search(st: stl, data_db: DbAccess):
         st.write(filtered)
     else:
         st.markdown('Enter some data to search')
+    st.write(filtered.sort_values(by='id', ascending=False).head(15))
