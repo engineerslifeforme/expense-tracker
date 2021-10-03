@@ -29,8 +29,12 @@ def display_budget_configuration(st: stl, db_data: DbAccess):
         st.markdown('### Current Budgets')
         st.write(db_data.budgets)
 
-    category_name = st.text_input('Category Name')
-    budget_name = st.selectbox('Assigned Budget', options=db_data.budgets['name'])
+    left, right = st.beta_columns(2)
+    category_name = left.text_input('Category Name')
+    budget_name = right.selectbox('Assigned Budget', options=db_data.budgets['name'])
+    if st.button('Add Category!'):
+        new_id = db_data.add_category(category_name, budget_name)
+        st.write(f'Added new Category {category_name} id: {new_id}!')        
     with st.beta_expander('Current Categories'):
         st.markdown('### Current Categories')
         categories = db_data.categories

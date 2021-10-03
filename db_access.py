@@ -331,3 +331,27 @@ class DbAccess(object):
         )
         return new_id
 
+    def add_category(self, name: str, budget_name: str):
+        new_id = max(self.categories['id']) + 1
+        budget_id = self.budget_map_reverse[budget_name]
+        self._insert(
+            'category',
+            [
+                'id',
+                'name',
+                'budget_id',
+                'valid',
+                'no_kid_retire',
+                'kid_retire',
+            ],
+            [
+                new_id,
+                name,
+                budget_id,
+                1,
+                1,
+                1,
+            ]
+        )
+        return new_id
+
