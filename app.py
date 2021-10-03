@@ -11,6 +11,7 @@ from delete_tab import display_delete
 from plot_tab import display_plot
 from edit import display_edit
 from account_manage import display_account_management
+from budget_managerment import display_budget_configuration
 
 st.set_page_config(layout="wide")
 
@@ -25,6 +26,7 @@ modes = [
     'Plotting', 
     'Admin Edit',
     'Account Management',
+    'Budget/Category Management',
 ]
 mode = st.sidebar.radio(
     'Mode',
@@ -49,5 +51,8 @@ elif mode == modes[4]:
 elif mode == modes[5]:
     st.markdown('## Account Management')
     display_account_management(st, data_db)
+elif mode == modes[6]:
+    st.markdown('## Budget / Category Management')
+    display_budget_configuration(st, data_db)
 else:
     st.write(f'Unknown mode {mode}')  
