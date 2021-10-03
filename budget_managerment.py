@@ -5,21 +5,32 @@ from db_access import DbAccess
 
 def display_budget_configuration(st: stl, db_data: DbAccess):
     name = st.text_input('Budget Name')
-    left, middle, right = st.beta_columns(3)
-    frequency = middle.selectbox(
-        'Budget Update Frequency',
-        options=['Daily', 'Weekly', 'Monthly', 'Yearly']
-    )
+    left, right = st.beta_columns(2)    
     balance = left.number_input(
         'Balance',
         step=0.01,
     )
     purpose = right.selectbox('Purpose', options=['Spending', 'Saving'])
-    increment = st.number_input('Update Increment', step=0.01)
-    st.button('Add New Budget!')
+    frequency = left.selectbox(
+        'Budget Update Frequency',
+        options=['Daily', 'Weekly', 'Monthly', 'Yearly']
+    )
+    increment = right.number_input('Update Increment', step=0.01)
+    if st.button('Add New Budget!'):
+        new_id = db_data.add_budget(
+            name,
+            balance,
+            purpose,
+            frequency[0],
+            increment,
+        )
+        st.write(f'Added new Budget {name} id: {new_id}')
     with st.beta_expander('Current Budgets'):
         st.markdown('### Current Budgets')
         st.write(db_data.budgets)
+
+    category_name = st.text_input('Category Name')
+    budget_name = st.selectbox('Assigned Budget', options=db_data.budgets['name'])
     with st.beta_expander('Current Categories'):
         st.markdown('### Current Categories')
         categories = db_data.categories

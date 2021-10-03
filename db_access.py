@@ -304,3 +304,30 @@ class DbAccess(object):
             ]
         )
 
+    def add_budget(self, name: str, balance: float, purpose: str, update_frequency: str, update_amount: float) -> int:
+        new_id = max(self.budgets['id']) + 1
+        self._insert(
+            'budget',
+            [
+                'id',
+                'name',
+                'balance',
+                'visibility',
+                'frequency',
+                'increment',
+                'valid',
+                'purpose',
+            ],
+            [
+                new_id,
+                name,
+                balance,
+                1,
+                update_frequency,
+                update_amount,
+                1,
+                purpose,
+            ]
+        )
+        return new_id
+
