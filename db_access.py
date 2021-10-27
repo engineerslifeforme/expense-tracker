@@ -68,9 +68,17 @@ class DbAccess(object):
             'SELECT * FROM budget',
             self.con
         )
+        self.statement_transactions = pd.read_sql_query(
+            'SELECT * FROM statement_transactions',
+            self.con
+        )
 
         self.max_taction_id = max(self.tactions['id'])
         self.max_sub_id = max(self.subs['id'])
+        if len(self.statement_transactions) > 0:
+            self.max_statement_transactions_id = max(self.statement_transactions['id'])
+        else:
+            self.max_statement_transactions_id = -1
 
     def build_maps(self):
         self.method_map = {item['id']: item['name'] for item in self.methods.to_dict(orient='records')}
@@ -273,6 +281,33 @@ class DbAccess(object):
             not_real_int,
         ])
         return new_id
+
+    def get_next_statement_transaction_id(self):
+        self.max_statement_transactions_id += 1
+        return self.max_statement_transactions_id
+
+    def add_statement_transaction(self, date, month:int, year:int, account_id:int, amount:float, description:str = None):
+        fields = [
+            'id',
+            'date',
+            'statement_month',
+            'statement_year',
+            'account_id',
+            'amount',
+        ]
+        new_id = self.get_next_statement_transaction_id()
+        values = [
+            new_id,
+            date,
+            month,
+            year,
+            account_id,
+            amount
+        ]
+        if description is not None:
+            fields.append('description')        
+            values.append(description)
+        self._insert('statement_transactions', fields, values)
 
     @refresh
     def _insert(self, table: str, fields: list, values: list):
