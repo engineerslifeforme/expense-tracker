@@ -13,6 +13,7 @@ from edit import display_edit
 from account_manage import display_account_management
 from budget_managerment import display_budget_configuration
 from statement_entry import display_statement_entry
+from reconcile_statements import display_reconcile_statements
 
 st.set_page_config(layout="wide")
 
@@ -29,6 +30,7 @@ modes = [
     'Account Management',
     'Budget/Category Management',
     'Statement Entry',
+    'Reconcile Statements',
 ]
 mode = st.sidebar.radio(
     'Mode',
@@ -59,5 +61,8 @@ elif mode == modes[6]:
 elif mode == modes[7]:
     st.markdown('## Statement Entry')
     display_statement_entry(st, data_db)
+elif mode == modes[8]:
+    st.markdown('## Reconcile Statements')
+    display_reconcile_statements(st, data_db)
 else:
     st.write(f'Unknown mode {mode}')  

@@ -70,7 +70,8 @@ class DbAccess(object):
         )
         self.statement_transactions = pd.read_sql_query(
             'SELECT * FROM statement_transactions',
-            self.con
+            self.con,
+            parse_dates=['date']
         )
 
         self.max_taction_id = max(self.tactions['id'])
@@ -184,6 +185,14 @@ class DbAccess(object):
             'balance',
             amount,
             self.category_to_budget_map[category_id],
+        )
+
+    def assign_statement_entry(self, entry_id: int, taction_id: int):
+        self._update(
+            'statement_transactions',
+            'taction_id',
+            taction_id,
+            entry_id,
         )
 
     @refresh
