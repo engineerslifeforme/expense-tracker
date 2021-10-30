@@ -29,7 +29,7 @@ def display_statement_entry(st: stl, data_db: DbAccess):
             
             if account_id in [0, 1, 8]: # Citi accounts 
                 statement_transactions = statement_transactions.fillna(0.0)
-                statement_transactions['amount'] = (statement_transactions['Credit'] - statement_transactions['Debit']).astype(float)
+                statement_transactions['amount'] = ((-1 * statement_transactions['Credit']) - statement_transactions['Debit']).astype(float)
                 statement_transactions['date'] = pd.to_datetime(statement_transactions['Date'])
                 statement_transactions['description'] = statement_transactions['Description']
             elif account_id in [6, 7]:
@@ -50,13 +50,16 @@ def display_statement_entry(st: stl, data_db: DbAccess):
             add_transactions = st.button('Add Transactions to Database')
             if add_transactions:
                 for index, item in enumerate(statement_transactions.to_dict(orient='records')):
+                    amount = item['amount']
+                    if amount == 0.0:
+                        continue
                     st.progress(float(index) / float(len(statement_transactions)))
                     data_db.add_statement_transaction(
                         item['date'],
                         month,
                         year,
                         account_id,
-                        item['amount'],
+                        amount,
                         description=item['description'],
                     )
         else:
