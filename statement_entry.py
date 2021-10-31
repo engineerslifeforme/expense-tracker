@@ -51,16 +51,27 @@ def display_statement_entry(st: stl, data_db: DbAccess):
             if add_transactions:
                 for index, item in enumerate(statement_transactions.to_dict(orient='records')):
                     amount = item['amount']
+                    date = item['date']
+                    description = item['description']
                     if amount == 0.0:
                         continue
-                    st.progress(float(index) / float(len(statement_transactions)))
-                    data_db.add_statement_transaction(
-                        item['date'],
-                        month,
-                        year,
-                        account_id,
-                        amount,
-                        description=item['description'],
-                    )
+                    duplicates = data_db.statement_transactions.loc[
+                        (data_db.statement_transactions['date'] == date) &
+                        (data_db.statement_transactions['account_id'] == account_id) &
+                        (data_db.statement_transactions['amount'] == amount) &
+                        (data_db.statement_transactions['description'] == description)
+                    ]
+                    if len(duplicates) == 0:
+                        data_db.add_statement_transaction(
+                            date,
+                            month,
+                            year,
+                            account_id,
+                            amount,
+                            description=description,
+                        )
+                    else:
+                        st.write(f'{date} - {description} already exists! Aborting...')
+                        break
         else:
             st.write('Statement has already been added')
