@@ -41,7 +41,7 @@ if mode == modes[0]:
     st.markdown('# Transaction Entry')
     display_transaction_entry(st, data_db)
 elif mode == modes[1]:
-    st.markdown('## Transaction Search')
+    st.markdown('# Search')
     display_search(st, data_db)
 elif mode == modes[2]:
     st.markdown('## Delete Transaction')
