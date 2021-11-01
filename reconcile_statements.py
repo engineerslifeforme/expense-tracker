@@ -4,6 +4,7 @@ import streamlit as stl
 import pandas as pd
 
 from db_access import DbAccess
+from ml_statement import predict_category
 
 def display_reconcile_statements(st: stl, data_db: DbAccess):
     st.markdown('Unassigned statement transactions')
@@ -75,9 +76,11 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                 st.markdown(f'No prevoius transactions of ${amount} found!')
             st.markdown('#### Manual Data')
             left, right = st.beta_columns(2)
+            category_options = data_db.categories['name']
             category = left.selectbox(
                 f'Category',
-                data_db.categories['name'],
+                category_options,
+                index=list(category_options).index(data_db.category_map[predict_category(chosen_entry)])
             )
             method = right.selectbox(
                 'Method',
