@@ -6,6 +6,8 @@ import pandas as pd
 from db_access import DbAccess
 from ml_statement import predict_category
 
+FOURTEEN_DAYS = pd.Timedelta(days=14)
+
 def display_reconcile_statements(st: stl, data_db: DbAccess):
     st.markdown('Unassigned statement transactions')
     unassigned_statement_entries = data_db.statement_transactions.loc[
@@ -16,10 +18,9 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
 
     if st.button('Attempt Auto-Assign'):
         st.markdown('Auto-assigning...')
-        for entry in unassigned_statement_entries.to_dict(orient='records'):
-            fourteen_days = pd.Timedelta(days=14)
-            min_date = entry['date'] - fourteen_days
-            max_date = entry['date'] + fourteen_days
+        for entry in unassigned_statement_entries.to_dict(orient='records'):            
+            min_date = entry['date'] - FOURTEEN_DAYS
+            max_date = entry['date'] + FOURTEEN_DAYS
             potential_matches = data_db.transactions.loc[
                 (data_db.transactions['date'] > min_date) &
                 (data_db.transactions['date'] < max_date) &
@@ -61,6 +62,16 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                 index=list(data_db.accounts['id']).index(chosen_entry['account_id'])
             )
             description = st.text_input('Description', value=chosen_entry['description'])
+            st.markdown('### Close Transactions')
+            min_date = pd.to_datetime(date) - FOURTEEN_DAYS
+            max_date = pd.to_datetime(date) + FOURTEEN_DAYS
+            potential_time_matches = data_db.transactions.loc[
+                (data_db.transactions['date'] > min_date) &
+                (data_db.transactions['date'] < max_date) &
+                (data_db.transactions['amount'] == amount) &
+                (data_db.transactions['valid'] == 1)
+            ]
+            st.write(potential_time_matches)
             st.markdown('### Similar Transactions')
             matching_subs = data_db.transactions[data_db.transactions['amount'] == amount]
             if len(matching_subs) > 0:
