@@ -45,7 +45,10 @@ def display_search(st: stl, data_db: DbAccess):
         check, field = st.beta_columns([1,5])
         use_taction_id = check.checkbox('Taction ID?')
         taction_id = field.number_input('Taction ID', min_value=0)
-
+        check, field = st.beta_columns([1,5])
+        use_category = check.checkbox('Category?')
+        category_id = data_db.category_map_reverse[field.selectbox('Category', options=data_db.categories['name'])]
+        
         filtered = data_db.subs
         show = False
         if sub_id != 0 and use_id:
@@ -56,6 +59,9 @@ def display_search(st: stl, data_db: DbAccess):
             show = True
         if taction_id != 0.0 and use_taction_id:
             filtered = filtered[filtered['taction_id'].abs() == taction_id]
+            show = True
+        if use_category:
+            filtered = filtered[filtered['category_id'] == category_id]
             show = True
         if show:
             st.write(filtered)
