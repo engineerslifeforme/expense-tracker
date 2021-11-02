@@ -4,7 +4,7 @@ import streamlit as stl
 import pandas as pd
 
 from db_access import DbAccess
-from ml_statement import predict_category
+from ml_statement import predict_category, train_model
 
 FOURTEEN_DAYS = pd.Timedelta(days=14)
 
@@ -113,6 +113,9 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                 data_db.assign_statement_entry(chosen_entry['id'], taction_id)
         else:
             st.markdown('No entries to be evaluated')
+
+        if st.button('Re-Train Suggestions'):
+            train_model(data_db)
 
     with st.beta_expander('Check if all transactions have a statement match'):
         st.write('TBD')
