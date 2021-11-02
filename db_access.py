@@ -103,6 +103,11 @@ class DbAccess(object):
         self.subview['budget'] = self.subview['budget_id'].map(self.budget_map)
 
     def delete_transaction(self, transaction_id: int):
+        statements = self.statement_transactions.loc[
+            self.statement_transactions['taction_id'] == transaction_id, 'id'
+        ]
+        for statement_id in statements:
+            self._update('statement_transactions', 'taction_id', None, statement_id)
         subs = self.subs.loc[self.subs['taction_id'] == transaction_id, :]
         amount = 0
         for sub in subs.to_dict(orient='records'):
@@ -206,7 +211,10 @@ class DbAccess(object):
             new_value = f"'{in_new_value}'"
         else:
             new_value = in_new_value
-        self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE id={item_id}")
+        if in_new_value is None:
+            self.cursor.execute(f"UPDATE {table_name} SET {field_name} = ? WHERE id={item_id}", (None,))
+        else:
+            self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE id={item_id}")
         self.con.commit()
 
     def add_sub(self, amount: float, category_id: int, taction_id: int, valid: bool, not_real: bool):
