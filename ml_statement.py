@@ -29,6 +29,10 @@ def predict_category(statement_entry: dict) -> int:
     return SVC_MODEL.predict(scaled_data)[0]
 
 def train_model(db):
+    global SVC_MODEL
+    global SCALER
+    global WORD_LIST
+    
     word_counts = {}
     for text in db.statement_transactions['description'].values:
         for word in text.split(' '):
@@ -78,6 +82,7 @@ def train_model(db):
     words['words'] = word_list
     words.to_csv('statement_word_list.csv')
     WORD_LIST = word_list
+    dump(word_list, 'word_list.joblib')
 
     dump(scaler, 'statement_scaler.joblib')
     SCALER = scaler
