@@ -4,6 +4,7 @@ from pathlib import Path
 
 import sqlite3
 import pandas as pd
+import numpy as np
 
 class DbAccess(object):
 
@@ -93,7 +94,11 @@ class DbAccess(object):
         self.category_to_budget_map = {item['id']: item['budget_id'] for item in self.categories.to_dict(orient='records')}
 
     def build_views(self):
-        sub_totals = self.subs[['taction_id', 'amount']].groupby('taction_id').sum().reset_index()
+        temp_subs = self.subs.copy()
+        # python math precision issues
+        temp_subs['amount'] = (np.floor(temp_subs['amount'] * 100.0)).astype(int)
+        sub_totals = temp_subs[['taction_id', 'amount']].groupby('taction_id').sum().reset_index()
+        sub_totals['amount'] = sub_totals['amount'] / 100.0
         self.transactions = sub_totals.join(self.tactions.set_index('id', drop=False), on='taction_id', lsuffix='_sub').reset_index().sort_values(by=['date'], ascending=False)
         self.transactions['method'] = self.transactions['method_id'].map(self.method_map)
         self.transactions['account'] = self.transactions['account_id'].map(self.account_map)
