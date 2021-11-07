@@ -46,6 +46,14 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                 st.markdown(f'Multiple matches for {entry_id} | {entry_description}')
                 st.write(potential_matches)
 
+    with st.beta_expander('Manual Addition'):
+        left, right = st.beta_columns(2)
+        entry_id = left.number_input('Statement Entry ID', min_value=0, step=1)
+        taction_id = right.number_input('Taction ID', min_value=0, step=1)
+        if st.button('Add Assignment'):
+            data_db.assign_statement_entry(entry_id, taction_id)
+            st.markdown(f'Assigned statement {entry_id} to taction {taction_id}')
+            
     with st.beta_expander('Add Non-Matching Statement Entries'):
         unassigned_statement_entries = data_db.statement_transactions.loc[
             data_db.statement_transactions['taction_id'].isnull(), :
