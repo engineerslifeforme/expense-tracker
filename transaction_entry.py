@@ -1,6 +1,7 @@
 """ Transaction Entry pane """
 
 import math
+from decimal import Decimal
 
 import streamlit as stl
 from db_access import DbAccess
@@ -27,9 +28,9 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
             transaction_types
         )
         if transaction_type == transaction_types[0]: # Withdraw
-            multiplier = -1.0
+            multiplier = Decimal('-1.00')
         elif transaction_type == transaction_types[1]: # Deposit
-            multiplier = 1.0
+            multiplier = Decimal('1.00')
         else:
             st.write(f'Unknown transaction type {transaction_type}')
         sub_quantity = right.number_input(
@@ -37,16 +38,16 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
             min_value=1,
             step=1,
         )
-        amount = 0.00
+        amount = Decimal('0.00')
         subs = []
         for x in range(sub_quantity):
             label = x + 1
             left, right = st.beta_columns(2)
-            sub_amount = round(left.number_input(
+            sub_amount = Decimal(str(left.number_input(
                 f'Amount #{label}',
                 min_value = 0.00,
                 step=0.01
-            ), 2)
+            )))
             amount += sub_amount
             category = right.selectbox(
                 f'Category #{label}',
@@ -81,11 +82,11 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
     # Transfer
     elif action_type == action_types[1]:
         left, middle, right = st.beta_columns(3)
-        amount = left.number_input(
+        amount = Decimal(str(left.number_input(
             'Amount',
             min_value = 0.00,
             step=0.01
-        )
+        )))
         withdraw_account = middle.selectbox(
             'Withdraw Account',
             data_db.accounts['name'],

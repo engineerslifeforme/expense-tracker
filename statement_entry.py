@@ -1,5 +1,7 @@
 """ Statement Entry """
 
+from decimal import Decimal
+
 import streamlit as stl
 import pandas as pd
 
@@ -35,21 +37,23 @@ def display_statement_entry(st: stl, data_db: DbAccess):
         if upload_is_csv:
             tabula = st.checkbox('Tabula export?')
             if tabula:
-                statement_transactions = pd.read_csv(uploaded_file, header=None, names=['date', 'description', 'amount'])
+                statement_transactions = pd.read_csv(uploaded_file, header=None, names=['date', 'description', 'amount'], converters={'amount': Decimal})
                 date_split = statement_transactions['date'].str.split('/', expand=True)
                 date_split.columns = ['month', 'day']
                 statement_transactions = pd.concat([statement_transactions, date_split], axis='columns')
                 statement_transactions['year'] = statement_transactions['month'].map(month_to_year_map)
                 statement_transactions['year'] = statement_transactions['year'].fillna(year)
                 statement_transactions['date'] = pd.to_datetime(statement_transactions['date'] + '/' + statement_transactions['year'].astype(int).astype(str))
-                statement_transactions['amount'] = statement_transactions['amount'] * -1
+                statement_transactions['amount'] = statement_transactions['amount'] * Decimal('-1.00')
             else:
-                statement_transactions = pd.read_csv(uploaded_file)
+                statement_transactions = pd.read_csv(uploaded_file, converters={'Credit': Decimal, 'Debit': Decimal, 'Amount': Decimal})
             st.write(f'{len(statement_transactions)} Transactions Found!')
             
             if account_id in [0, 1, 8] and not tabula: # Citi accounts 
-                statement_transactions = statement_transactions.fillna(0.0)
-                statement_transactions['amount'] = ((-1 * statement_transactions['Credit']) - statement_transactions['Debit']).astype(float)
+                zero = Decimal('0.00')
+                statement_transactions['Debit'] = statement_transactions['Debit'].fillna(zero)
+                statement_transactions['Credit'] = statement_transactions['Credit'].fillna(zero)
+                statement_transactions['amount'] = ((Decimal('-1.00') * statement_transactions['Credit']) - statement_transactions['Debit'])
                 statement_transactions['date'] = pd.to_datetime(statement_transactions['Date'])
                 statement_transactions['description'] = statement_transactions['Description']
             elif account_id in [6, 7] and not tabula:

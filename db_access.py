@@ -1,10 +1,17 @@
 """ DB Access object """
 
 from pathlib import Path
+from decimal import Decimal
 
 import sqlite3
 import pandas as pd
 import numpy as np
+
+def sum_amount(df):
+    total = Decimal('0.00')
+    for item in df['amount'].values:
+        total += item
+    return total
 
 class DbAccess(object):
 
@@ -46,12 +53,16 @@ class DbAccess(object):
     def load_data(self):
         self.accounts = pd.read_sql_query(
             'SELECT * FROM account',
-            self.con
+            self.con,
+            dtype={'balance': str},
         )
+        self.accounts['balance'] = self.accounts['balance'].apply(Decimal)
         self.subs = pd.read_sql_query(
             'SELECT * FROM sub',
-            self.con
+            self.con,
+            dtype={'amount': str},
         )
+        self.subs['amount'] = self.subs['amount'].apply(Decimal)
         self.tactions = pd.read_sql_query(
             'SELECT * FROM taction',
             self.con
@@ -67,13 +78,17 @@ class DbAccess(object):
         )
         self.budgets = pd.read_sql_query(
             'SELECT * FROM budget',
-            self.con
+            self.con,
+            dtype={'balance': str},
         )
+        self.budgets['balance'] = self.budgets['balance'].apply(Decimal)
         self.statement_transactions = pd.read_sql_query(
             'SELECT * FROM statement_transactions',
             self.con,
-            parse_dates=['date']
+            parse_dates=['date'],
+            dtype={'amount': str},
         )
+        self.statement_transactions['amount'] = self.statement_transactions['amount'].apply(Decimal)
 
         self.max_taction_id = max(self.tactions['id'])
         self.max_sub_id = max(self.subs['id'])
@@ -94,11 +109,7 @@ class DbAccess(object):
         self.category_to_budget_map = {item['id']: item['budget_id'] for item in self.categories.to_dict(orient='records')}
 
     def build_views(self):
-        temp_subs = self.subs.copy()
-        # python math precision issues
-        temp_subs['amount'] = (np.floor(temp_subs['amount'] * 100.0)).astype(int)
-        sub_totals = temp_subs[['taction_id', 'amount']].groupby('taction_id').sum().reset_index()
-        sub_totals['amount'] = sub_totals['amount'] / 100.0
+        sub_totals = self.subs.groupby('taction_id').apply(sum_amount).reset_index(drop=False).rename({0:'amount'}, axis='columns')
         self.transactions = sub_totals.join(self.tactions.set_index('id', drop=False), on='taction_id', lsuffix='_sub').reset_index().sort_values(by=['date'], ascending=False)
         self.transactions['method'] = self.transactions['method_id'].map(self.method_map)
         self.transactions['account'] = self.transactions['account_id'].map(self.account_map)
@@ -114,13 +125,13 @@ class DbAccess(object):
         for statement_id in statements:
             self._update('statement_transactions', 'taction_id', None, statement_id)
         subs = self.subs.loc[self.subs['taction_id'] == transaction_id, :]
-        amount = 0
+        amount = Decimal('0.00')
         for sub in subs.to_dict(orient='records'):
             if sub['valid'] != 1:
                 raise ValueError('Sub was not valid')
             sub_amount = sub['amount']
             amount += sub_amount
-            self.update_budget(-1*sub_amount, sub['category_id'])
+            self.update_budget(Decimal('-1.00')*sub_amount, sub['category_id'])
             self._update(
                 'sub', 'valid', 0, sub['id']
             )
@@ -128,13 +139,13 @@ class DbAccess(object):
         taction_valid = self.tactions.loc[self.tactions['id'] == transaction_id, 'valid'].values[0]
         if taction_valid != 1:
             raise ValueError('taction was not valid')
-        self.update_account(-1*amount, self.account_map[account_id])
+        self.update_account(Decimal('-1.00')*amount, self.account_map[account_id])
         self._update(
             'taction', 'valid', 0, transaction_id
         )
 
-    def add_transfer(self, date, withdrawal_account: str, deposit_account: str, description, receipt, amount: float):
-        withdraw_amount = -1 * amount
+    def add_transfer(self, date, withdrawal_account: str, deposit_account: str, description, receipt, amount: Decimal):
+        withdraw_amount = Decimal('-1.00') * amount
         self.add_transaction(
             date,
             withdrawal_account,
@@ -156,7 +167,7 @@ class DbAccess(object):
             transfer=True,
         )
 
-    def add_transaction(self, date, account: str, method: str, description: str, receipt: bool, amount: float, subs: list, transfer: bool = False):
+    def add_transaction(self, date, account: str, method: str, description: str, receipt: bool, amount: Decimal, subs: list, transfer: bool = False):
         new_id = self.add_taction(
             date,
             transfer,
@@ -181,7 +192,7 @@ class DbAccess(object):
             self.update_budget(sub_amount, category_id)
         return new_id
 
-    def update_account(self, amount: float, account: str):
+    def update_account(self, amount: Decimal, account: str):
         self._update_add(
             'account',
             'balance',
@@ -189,7 +200,7 @@ class DbAccess(object):
             self.account_map_reverse[account],
         )
 
-    def update_budget(self, amount: float, category_id: int):
+    def update_budget(self, amount: Decimal, category_id: int):
         self._update_add(
             'budget',
             'balance',
@@ -206,7 +217,7 @@ class DbAccess(object):
         )
 
     @refresh
-    def _update_add(self, table_name: str, field_name: str, amount: float, item_id: int):
+    def _update_add(self, table_name: str, field_name: str, amount: Decimal, item_id: int):
         self.cursor.execute(f"UPDATE {table_name} SET {field_name}={field_name}+{amount} WHERE id={item_id}")
         self.con.commit()
 
@@ -222,7 +233,7 @@ class DbAccess(object):
             self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE id={item_id}")
         self.con.commit()
 
-    def add_sub(self, amount: float, category_id: int, taction_id: int, valid: bool, not_real: bool):
+    def add_sub(self, amount: Decimal, category_id: int, taction_id: int, valid: bool, not_real: bool):
         fields = [
             'id',
             'amount',
@@ -308,7 +319,7 @@ class DbAccess(object):
         self.max_statement_transactions_id += 1
         return self.max_statement_transactions_id
 
-    def add_statement_transaction(self, date, month:int, year:int, account_id:int, amount:float, description:str = None):
+    def add_statement_transaction(self, date, month:int, year:int, account_id:int, amount:Decimal, description:str = None):
         fields = [
             'id',
             'date',
@@ -339,7 +350,7 @@ class DbAccess(object):
         self.cursor.execute(f"INSERT INTO {table} ({fields_str}) VALUES ({values_str})")
         self.con.commit()
 
-    def add_account(self, name: str, balance: float, purpose: str):
+    def add_account(self, name: str, balance: Decimal, purpose: str):
         new_id = max(self.accounts['id']) + 1
         self._insert(
             'account',
@@ -361,7 +372,7 @@ class DbAccess(object):
             ]
         )
 
-    def add_budget(self, name: str, balance: float, purpose: str, update_frequency: str, update_amount: float) -> int:
+    def add_budget(self, name: str, balance: Decimal, purpose: str, update_frequency: str, update_amount: Decimal) -> int:
         new_id = max(self.budgets['id']) + 1
         self._insert(
             'budget',

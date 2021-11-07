@@ -1,5 +1,7 @@
 """ Reconcile database against statements """
 
+from decimal import Decimal
+
 import streamlit as stl
 import pandas as pd
 
@@ -56,7 +58,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                 st.write('#### Auto Populated Data')
                 left, middle, right = st.beta_columns(3)
                 date = left.date_input('Date', value=chosen_entry['date'])
-                amount = middle.number_input('Amount', value=chosen_entry['amount'], step=0.01)
+                amount = Decimal(str(middle.number_input('Amount', value=float(chosen_entry['amount']), step=0.01)))
                 account_name = right.selectbox(
                     'Account',
                     data_db.accounts['name'],

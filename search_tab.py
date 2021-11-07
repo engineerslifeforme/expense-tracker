@@ -1,5 +1,7 @@
 """ Search page """
 
+from decimal import Decimal
+
 import streamlit as stl
 
 from db_access import DbAccess
@@ -11,7 +13,7 @@ def display_search(st: stl, data_db: DbAccess):
         taction_id = field.number_input('ID', min_value=0, step=1)
         check, field = st.beta_columns([1,5])
         use_amount = check.checkbox('Amount?')
-        amount = field.number_input('Amount', min_value=0.0)
+        amount = Decimal(str(field.number_input('Amount', min_value=0.0, step=0.01)))
 
         filtered = data_db.transactions
         show = False
@@ -41,7 +43,7 @@ def display_search(st: stl, data_db: DbAccess):
         sub_id = field.number_input('Sub ID', min_value=0, step=1)
         check, field = st.beta_columns([1,5])
         use_amount = check.checkbox('Sub Amount?')
-        amount = field.number_input('Sub Amount', min_value=0.0)
+        amount = Decimal(str(field.number_input('Sub Amount', min_value=0.0, step=0.01)))
         check, field = st.beta_columns([1,5])
         use_taction_id = check.checkbox('Taction ID?')
         taction_id = field.number_input('Taction ID', min_value=0)

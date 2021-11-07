@@ -1,21 +1,23 @@
 """ Budget/Category Management """
 
+from decimal import Decimal
+
 import streamlit as stl
 from db_access import DbAccess
 
 def display_budget_configuration(st: stl, db_data: DbAccess):
     name = st.text_input('Budget Name')
     left, right = st.beta_columns(2)    
-    balance = left.number_input(
+    balance = Decimal(str(left.number_input(
         'Balance',
         step=0.01,
-    )
+    )))
     purpose = right.selectbox('Purpose', options=['Spending', 'Saving'])
     frequency = left.selectbox(
         'Budget Update Frequency',
         options=['Daily', 'Weekly', 'Monthly', 'Yearly']
     )
-    increment = right.number_input('Update Increment', step=0.01)
+    increment = Decimal(str(right.number_input('Update Increment', step=0.01)))
     if st.button('Add New Budget!'):
         new_id = db_data.add_budget(
             name,

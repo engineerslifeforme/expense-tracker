@@ -1,5 +1,7 @@
 """ Account Management """
 
+from decimal import Decimal
+
 import streamlit as stl
 from db_access import DbAccess
 
@@ -11,10 +13,10 @@ def display_account_management(st: stl, db_data: DbAccess):
     new_name = left.text_input(
         'New Account Name'
     )
-    balance = middle.number_input(
+    balance = Decimal(str(middle.number_input(
         'Current Balance',
         step=0.01,
-    )
+    )))
     purpose = right.selectbox(
         'Account Type',
         options = ['Spending', 'Savings']

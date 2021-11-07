@@ -3,3 +3,6 @@
 .ipynb*
 .vscode
 *.db
+*.joblib
+csvs
+fix.sh
