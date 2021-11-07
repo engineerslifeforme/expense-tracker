@@ -37,12 +37,14 @@ def display_statement_entry(st: stl, data_db: DbAccess):
         if upload_is_csv:
             tabula = st.checkbox('Tabula export?')
             if tabula:
-                statement_transactions = pd.read_csv(uploaded_file, header=None, names=['date', 'description', 'amount'], converters={'amount': Decimal})
+                statement_transactions = pd.read_csv(uploaded_file, header=None, names=['date', 'description', 'amount'], dtype={'amount': str})
+                statement_transactions['amount'] = statement_transactions['amount'].str.replace(',', '').apply(Decimal)
                 date_split = statement_transactions['date'].str.split('/', expand=True)
                 date_split.columns = ['month', 'day']
                 statement_transactions = pd.concat([statement_transactions, date_split], axis='columns')
                 statement_transactions['year'] = statement_transactions['month'].map(month_to_year_map)
                 statement_transactions['year'] = statement_transactions['year'].fillna(year)
+                statement_transactions = statement_transactions.loc[statement_transactions['date'].str.contains('/'), :]
                 statement_transactions['date'] = pd.to_datetime(statement_transactions['date'] + '/' + statement_transactions['year'].astype(int).astype(str))
                 statement_transactions['amount'] = statement_transactions['amount'] * Decimal('-1.00')
             else:
