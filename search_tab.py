@@ -75,10 +75,15 @@ def display_search(st: stl, data_db: DbAccess):
         left, right = st.beta_columns(2)
         taction_filter = right.checkbox('Filter by taction')
         taction_id = left.number_input('taction to filter', value=0, min_value=0, step=1)
+        left, right = st.beta_columns(2)
+        id_filter = right.checkbox('Filter by ID')
+        statement_id = left.number_input('statement ID', value=0, min_value=0, step=1)
 
         data_to_show = data_db.statement_transactions
 
         if taction_filter:
             data_to_show = data_to_show.loc[data_to_show['taction_id'] == taction_id]
+        if id_filter:
+            data_to_show = data_to_show.loc[data_to_show['id'] == statement_id]
 
         st.write(data_to_show)

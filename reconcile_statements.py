@@ -50,6 +50,12 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
         left, right = st.beta_columns(2)
         entry_id = left.number_input('Statement Entry ID', min_value=0, step=1)
         taction_id = right.number_input('Taction ID', min_value=0, step=1)
+        if entry_id != 0:
+            st.write(data_db.statement_transactions[data_db.statement_transactions['id'] == entry_id])
+        if taction_id != 0:
+            st.write(data_db.transactions[data_db.transactions['id'] == taction_id])
+            if taction_id in data_db.statement_transactions['taction_id']:
+                st.write('Already mapped!')
         if st.button('Add Assignment'):
             data_db.assign_statement_entry(entry_id, taction_id)
             st.markdown(f'Assigned statement {entry_id} to taction {taction_id}')
@@ -82,6 +88,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                     (data_db.transactions['amount'] == amount) &
                     (data_db.transactions['valid'] == 1)
                 ]
+                potential_time_matches =  potential_time_matches.join(data_db.statement_transactions[['id', 'taction_id']].set_index('taction_id'), on='id', rsuffix='_statement')
                 st.write(potential_time_matches)
                 st.markdown('### Similar Transactions')
                 matching_subs = data_db.transactions[data_db.transactions['amount'] == amount]
@@ -132,3 +139,10 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
 
     with st.beta_expander('Check if all transactions have a statement match'):
         st.write('TBD')
+
+    duplicate_assignments = data_db.statement_transactions['taction_id'].dropna().duplicated()
+    if any(duplicate_assignments):
+        st.markdown('Duplicates found:')
+        st.write(data_db.statement_transactions[duplicate_assignments])
+    else:
+        st.markdown('No duplicate assignments!')
