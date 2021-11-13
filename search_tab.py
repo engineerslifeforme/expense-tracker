@@ -34,6 +34,7 @@ def display_search(st: stl, data_db: DbAccess):
             start_date = dt.date(year=2010,month=1,day=1)  #  I need some range in the past
             end_date = dt.datetime.now().date()
             start_date, end_date = st.slider('Select date', min_value=start_date, value=[start_date, end_date], max_value=end_date)
+            st.markdown(f'Filtered from {start_date} to {end_date}')
             filtered = filtered.loc[
                 (filtered['date'] >= pd.to_datetime(start_date)) &
                 (filtered['date'] <= pd.to_datetime(end_date)),
