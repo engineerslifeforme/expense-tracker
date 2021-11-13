@@ -3,27 +3,45 @@
 from decimal import Decimal
 
 import streamlit as stl
+import datetime as dt
+from dateutil.relativedelta import relativedelta
+import pandas as pd
 
 from db_access import DbAccess
 
-def display_search(st: stl, data_db: DbAccess):
+def display_search(st: stl, data_db: DbAccess):    
     with st.beta_expander('Transaction Search'):
-        check, field = st.beta_columns([1,5])
-        use_id = check.checkbox('ID?')
-        taction_id = field.number_input('ID', min_value=0, step=1)
-        check, field = st.beta_columns([1,5])
-        use_amount = check.checkbox('Amount?')
-        amount = Decimal(str(field.number_input('Amount', min_value=0.0, step=0.01)))
-
         filtered = data_db.transactions
         show = False
-        if taction_id != 0 and use_id:
+        
+        taction_id = st.number_input('ID', min_value=0, step=1)
+        if taction_id != 0:
             filtered = filtered[filtered['id'] == taction_id]
             show = True
-        if amount != 0.0 and use_amount:
+        
+        amount = Decimal(str(st.number_input('Amount', min_value=0.0, step=0.01)))
+        if amount != 0.0:
             filtered = filtered[filtered['amount'].abs() == amount]
             show = True
+
+        selected_accounts = st.multiselect('Account Filter:', data_db.accounts['name'])
+        if len(selected_accounts) > 0:
+            show = True
+            filtered = filtered.loc[filtered['account'].isin(selected_accounts)]
+
+        if st.checkbox('Apply Date Filter?'):
+            show = True
+            start_date = dt.date(year=2010,month=1,day=1)  #  I need some range in the past
+            end_date = dt.datetime.now().date()
+            start_date, end_date = st.slider('Select date', min_value=start_date, value=[start_date, end_date], max_value=end_date)
+            filtered = filtered.loc[
+                (filtered['date'] >= pd.to_datetime(start_date)) &
+                (filtered['date'] <= pd.to_datetime(end_date)),
+                :
+            ]
+        
         if show:
+            st.markdown(f'{len(filtered)} Filtered Transactions')
             st.write(filtered[[
                 'id',
                 'amount',
