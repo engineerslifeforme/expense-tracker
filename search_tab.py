@@ -91,18 +91,18 @@ def display_search(st: stl, data_db: DbAccess):
         st.write(filtered.sort_values(by='id', ascending=False).head(15))
 
     with st.beta_expander('Statement Search'):
-        left, right = st.beta_columns(2)
-        taction_filter = right.checkbox('Filter by taction')
-        taction_id = left.number_input('taction to filter', value=0, min_value=0, step=1)
-        left, right = st.beta_columns(2)
-        id_filter = right.checkbox('Filter by ID')
-        statement_id = left.number_input('statement ID', value=0, min_value=0, step=1)
-
         data_to_show = data_db.statement_transactions
 
-        if taction_filter:
+        taction_id = st.number_input('taction to filter', value=0, min_value=0, step=1)
+        if taction_id != 0:
             data_to_show = data_to_show.loc[data_to_show['taction_id'] == taction_id]
-        if id_filter:
+        
+        statement_id = st.number_input('statement ID', value=0, min_value=0, step=1)
+        if statement_id != 0:
             data_to_show = data_to_show.loc[data_to_show['id'] == statement_id]
 
+        amount = Decimal(str(st.number_input('Amount Filter', value=0.00, min_value=0.00, step=0.01)))
+        if amount != 0.00:
+            data_to_show = data_to_show.loc[data_to_show['amount'].abs() == amount]
+        st.markdown(f'{len(data_to_show)} Statement Matches')
         st.write(data_to_show)

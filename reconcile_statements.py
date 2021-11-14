@@ -16,7 +16,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
         data_db.statement_transactions['taction_id'].isnull(), :
     ]
     st.write(f'{len(unassigned_statement_entries)} unassigned statement entries!')
-    st.write(unassigned_statement_entries)
+    st.write(unassigned_statement_entries.reset_index())
 
     if st.button('Attempt Auto-Assign'):
         st.markdown('Auto-assigning...')

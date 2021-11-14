@@ -14,6 +14,7 @@ from account_manage import display_account_management
 from budget_managerment import display_budget_configuration
 from statement_entry import display_statement_entry
 from reconcile_statements import display_reconcile_statements
+from integrity_check import display_integrity
 
 st.set_page_config(layout="wide")
 
@@ -31,6 +32,7 @@ modes = [
     'Budget/Category Management',
     'Statement Entry',
     'Reconcile Statements',
+    'Integrity Check',
 ]
 mode = st.sidebar.radio(
     'Mode',
@@ -64,5 +66,8 @@ elif mode == modes[7]:
 elif mode == modes[8]:
     st.markdown('## Reconcile Statements')
     display_reconcile_statements(st, data_db)
+elif mode == modes[9]:
+    st.markdown('## Integrity Check')
+    display_integrity(st, data_db)
 else:
     st.write(f'Unknown mode {mode}')  

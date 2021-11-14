@@ -44,6 +44,7 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                 statement_transactions = pd.concat([statement_transactions, date_split], axis='columns')
                 statement_transactions['year'] = statement_transactions['month'].map(month_to_year_map)
                 statement_transactions['year'] = statement_transactions['year'].fillna(year)
+                statement_transactions = statement_transactions.dropna(subset=['date'])
                 statement_transactions = statement_transactions.loc[statement_transactions['date'].str.contains('/'), :]
                 statement_transactions['date'] = pd.to_datetime(statement_transactions['date'] + '/' + statement_transactions['year'].astype(int).astype(str))
                 statement_transactions['amount'] = statement_transactions['amount'] * Decimal('-1.00')
