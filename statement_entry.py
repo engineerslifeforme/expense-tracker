@@ -49,7 +49,7 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                     statement_transactions['deposit'] = statement_transactions['deposit'].fillna('0.00')
                     statement_transactions['withdraw'] = statement_transactions['withdraw'].str.replace(',', '').apply(Decimal)
                     statement_transactions['deposit'] = statement_transactions['deposit'].str.replace(',', '').apply(Decimal)
-                    statement_transactions['amount'] = -1 * statement_transactions['deposit'] - statement_transactions['withdraw']
+                    statement_transactions['amount'] = statement_transactions['deposit'] + statement_transactions['withdraw']
                     statement_transactions = statement_transactions.drop(['withdraw', 'deposit'], axis='columns')
                 else:
                     st.error(f'Unexpected number of columns {column_count}')
@@ -78,7 +78,8 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                 statement_transactions['amount'] = statement_transactions['Amount']
                 statement_transactions['date'] = pd.to_datetime(statement_transactions['Transaction Date'])
                 statement_transactions['description'] = statement_transactions['Description']
-            
+            if not any(statement_transactions['amount'].isna()):
+                st.success('No NaN amounts!')
             st.write(statement_transactions)
 
         existing_transactions = data_db.statement_transactions.loc[
