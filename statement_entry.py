@@ -37,8 +37,23 @@ def display_statement_entry(st: stl, data_db: DbAccess):
         if upload_is_csv:
             tabula = st.checkbox('Tabula export?')
             if tabula:
-                statement_transactions = pd.read_csv(uploaded_file, header=None, names=['date', 'description', 'amount'], dtype={'amount': str})
-                statement_transactions['amount'] = statement_transactions['amount'].str.replace(',', '').apply(Decimal)
+                # index_col = False, was occasionally using first column as index = bad
+                statement_transactions = pd.read_csv(uploaded_file, header=None, dtype=str, index_col=False)
+                column_count = len(statement_transactions.columns)
+                if column_count == 3:
+                    statement_transactions.columns = ['date', 'description', 'amount']
+                    statement_transactions['amount'] = statement_transactions['amount'].str.replace(',', '').apply(Decimal)
+                elif column_count == 4:
+                    statement_transactions.columns = ['date', 'description', 'withdraw', 'deposit']
+                    statement_transactions['withdraw'] = statement_transactions['withdraw'].fillna('0.00')
+                    statement_transactions['deposit'] = statement_transactions['deposit'].fillna('0.00')
+                    statement_transactions['withdraw'] = statement_transactions['withdraw'].str.replace(',', '').apply(Decimal)
+                    statement_transactions['deposit'] = statement_transactions['deposit'].str.replace(',', '').apply(Decimal)
+                    statement_transactions['amount'] = -1 * statement_transactions['deposit'] - statement_transactions['withdraw']
+                    statement_transactions = statement_transactions.drop(['withdraw', 'deposit'], axis='columns')
+                else:
+                    st.error(f'Unexpected number of columns {column_count}')
+                
                 date_split = statement_transactions['date'].str.split('/', expand=True)
                 date_split.columns = ['month', 'day']
                 statement_transactions = pd.concat([statement_transactions, date_split], axis='columns')

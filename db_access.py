@@ -47,6 +47,8 @@ class DbAccess(object):
             return self.categories
         elif table_name == 'budget':
             return self.budgets
+        elif table_name == 'statement_transactions':
+            return self.statement_transactions
         else:
             return None
 

@@ -14,6 +14,7 @@ def display_edit(st: stl, db_data:DbAccess):
             'method',
             'category',
             'budget',
+            'statement_transactions',
         ]
     )
     id_to_change = right.number_input(
