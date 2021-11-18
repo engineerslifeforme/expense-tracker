@@ -10,6 +10,14 @@ from ml_statement import predict_category, train_model
 
 FOURTEEN_DAYS = pd.Timedelta(days=14)
 
+def attempt_statement_assignment(st, data_db, taction_id, entry_id, entry_description, description):
+    if taction_id in data_db.statement_transactions['taction_id'].values:
+        st.markdown(f'Only match already assigned, statement: {entry_id}, taction: {taction_id}')
+    else:
+        st.markdown(f'Assigning statement {entry_id} to taction {taction_id}')
+        st.markdown(f"Statement description: {entry_description} transaction: {description}")
+        data_db.assign_statement_entry(entry_id, taction_id)
+
 def display_reconcile_statements(st: stl, data_db: DbAccess):
     st.markdown('Unassigned statement transactions')
     unassigned_statement_entries = data_db.statement_transactions.loc[
@@ -36,15 +44,15 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
             entry_id = entry['id']
             if match_quantity == 1:                
                 taction_id = potential_matches['id'].values[0]
-                if taction_id in data_db.statement_transactions['taction_id'].values:
-                    st.markdown(f'Only match already assigned, statement: {entry_id}, taction: {taction_id}')
-                else:
-                    st.markdown(f'Assigning statement {entry_id} to taction {taction_id}')
-                    st.markdown(f"Statement description: {entry_description} transaction: {potential_matches['description'].values[0]}")
-                    data_db.assign_statement_entry(entry_id, taction_id)
+                attempt_statement_assignment(st, data_db, taction_id, entry_id, entry_description, potential_matches['description'].values[0])
             elif match_quantity > 1:
-                st.markdown(f'Multiple matches for {entry_id} | {entry_description}')
-                st.write(potential_matches)
+                precise_date_matches = potential_matches[potential_matches['date'] == entry['date']]
+                if len(precise_date_matches) == 1:
+                    taction_id = precise_date_matches['id'].values[0]
+                    attempt_statement_assignment(st, data_db, taction_id, entry_id, entry_description, precise_date_matches['description'].values[0])
+                else:
+                    st.markdown(f'Multiple matches for {entry_id} | {entry_description}')
+                    st.write(potential_matches)
 
     with st.beta_expander('Manual Addition'):
         left, right = st.beta_columns(2)

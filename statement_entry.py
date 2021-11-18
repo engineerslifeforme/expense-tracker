@@ -56,6 +56,8 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                 
                 date_split = statement_transactions['date'].str.split('/', expand=True)
                 date_split.columns = ['month', 'day']
+                if any(date_split['month'].astype(int) == 12):
+                    st.warning('December dates detected, select year carefully')
                 statement_transactions = pd.concat([statement_transactions, date_split], axis='columns')
                 statement_transactions['year'] = statement_transactions['month'].map(month_to_year_map)
                 statement_transactions['year'] = statement_transactions['year'].fillna(year)
