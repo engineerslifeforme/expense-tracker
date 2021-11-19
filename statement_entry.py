@@ -1,11 +1,19 @@
 """ Statement Entry """
 
 from decimal import Decimal
+from io import StringIO
 
 import streamlit as stl
 import pandas as pd
 
 from db_access import DbAccess
+
+def check_csv_format(st: stl, csv_file):
+    lines = csv_file.readlines()
+    lines = [line.decode('ascii') for line in lines]
+    max_count = max([line.count(',') for line in lines])
+    new_lines = [line.rstrip() + (',' * (max_count - line.count(','))) for line in lines]
+    return '\n'.join(new_lines)
 
 def display_statement_entry(st: stl, data_db: DbAccess):
     uploaded_file = st.file_uploader('Statement file')
@@ -37,14 +45,21 @@ def display_statement_entry(st: stl, data_db: DbAccess):
         if upload_is_csv:
             tabula = st.checkbox('Tabula export?')
             if tabula:
+                if st.checkbox('Attempt CSV fixing?'):
+                    str_content = check_csv_format(st, uploaded_file)
+                else:
+                    str_content = uploaded_file.read().decode('ascii')
                 # index_col = False, was occasionally using first column as index = bad
-                statement_transactions = pd.read_csv(uploaded_file, header=None, dtype=str, index_col=False)
+                statement_transactions = pd.read_csv(StringIO(str_content), header=None, dtype=str, index_col=False)
+                with st.beta_expander('Raw Data'):
+                    st.write(statement_transactions)
                 column_count = len(statement_transactions.columns)
                 if column_count == 3:
                     statement_transactions.columns = ['date', 'description', 'amount']
                     statement_transactions['amount'] = statement_transactions['amount'].str.replace(',', '').apply(Decimal)
                 elif column_count == 4:
-                    statement_transactions.columns = ['date', 'description', 'withdraw', 'deposit']
+                    draft_columns = ['date', 'description', 'withdraw', 'deposit']
+                    statement_transactions.columns = draft_columns
                     statement_transactions['withdraw'] = statement_transactions['withdraw'].fillna('0.00')
                     statement_transactions['deposit'] = statement_transactions['deposit'].fillna('0.00')
                     statement_transactions['withdraw'] = statement_transactions['withdraw'].str.replace(',', '').apply(Decimal)

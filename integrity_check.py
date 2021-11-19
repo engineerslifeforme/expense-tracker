@@ -13,3 +13,6 @@ def display_integrity(st: stl, data_db: DbAccess):
     else:
         st.success('No Duplicate Statement Assignments!')
     st.markdown('Add check that statement entries and transactions share same account')
+    st.markdown('Add check that all transactions have a sub')
+    st.markdown('Add check that all subs have a transaction')
+    st.markdown('Add check that all valid subs have valid transactions and vice versa')
