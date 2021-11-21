@@ -28,9 +28,9 @@ class DbAccess(object):
     
         def inner1(self, *args, **kwargs):            
             func(self, *args, **kwargs)
-            self.load_data()
-            self.build_maps()
-            self.build_views()
+            #self.load_data()
+            #self.build_maps()
+            #self.build_views()
           
         return inner1
 

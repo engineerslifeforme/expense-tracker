@@ -124,8 +124,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                     list(data_db.methods['name']),
                 )
                 
-                if st.button('Add Transaction!'):
-                    st.markdown('Added transaction')
+                if st.button('Add Transaction!'):                    
                     subs = [(amount, category)]
                     taction_id = data_db.add_transaction(
                         date,
@@ -137,6 +136,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                         subs,
                     )
                     data_db.assign_statement_entry(chosen_entry['id'], taction_id)
+                    st.markdown('Added transaction')
             except ValueError:
                 st.write('Failed to Load entry')
         else:
@@ -144,13 +144,3 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
 
         if st.button('Re-Train Suggestions'):
             train_model(data_db)
-
-    with st.beta_expander('Check if all transactions have a statement match'):
-        st.write('TBD')
-
-    duplicate_assignments = data_db.statement_transactions['taction_id'].dropna().duplicated()
-    if any(duplicate_assignments):
-        st.markdown('Duplicates found:')
-        st.write(data_db.statement_transactions[duplicate_assignments])
-    else:
-        st.markdown('No duplicate assignments!')

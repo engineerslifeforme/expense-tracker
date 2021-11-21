@@ -53,6 +53,11 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                 statement_transactions = pd.read_csv(StringIO(str_content), header=None, dtype=str, index_col=False)
                 with st.beta_expander('Raw Data'):
                     st.write(statement_transactions)
+                bad_rows = statement_transactions[statement_transactions[0].isna()]
+                if len(bad_rows) > 0:
+                    st.markdown('Removing these rows:')
+                    st.write(bad_rows)
+                statement_transactions = statement_transactions.loc[~statement_transactions[0].isna(), :]
                 column_count = len(statement_transactions.columns)
                 if column_count == 3:
                     statement_transactions.columns = ['date', 'description', 'amount']
@@ -64,7 +69,8 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                     statement_transactions['deposit'] = statement_transactions['deposit'].fillna('0.00')
                     statement_transactions['withdraw'] = statement_transactions['withdraw'].str.replace(',', '').apply(Decimal)
                     statement_transactions['deposit'] = statement_transactions['deposit'].str.replace(',', '').apply(Decimal)
-                    statement_transactions['amount'] = statement_transactions['deposit'] + statement_transactions['withdraw']
+                    # -1 will get reversed below
+                    statement_transactions['amount'] = (-1 * statement_transactions['deposit']) + statement_transactions['withdraw']
                     statement_transactions = statement_transactions.drop(['withdraw', 'deposit'], axis='columns')
                 else:
                     st.error(f'Unexpected number of columns {column_count}')
