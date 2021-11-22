@@ -401,6 +401,12 @@ class DbAccess(object):
         )
         return new_id
 
+    def defer_statement(self, statement_id: int):
+        self._update('statement_transactions', 'deferred', 1, statement_id)
+
+    def undefer_statement(self, statement_id: int):
+        self._update('statement_transactions', 'deferred', 0, statement_id)
+
     def add_category(self, name: str, budget_name: str):
         new_id = max(self.categories['id']) + 1
         budget_id = self.budget_map_reverse[budget_name]

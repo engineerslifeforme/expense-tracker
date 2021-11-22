@@ -23,6 +23,8 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
     unassigned_statement_entries = data_db.statement_transactions.loc[
         data_db.statement_transactions['taction_id'].isnull(), :
     ]
+    if not st.checkbox('Include Deferred?'):
+        unassigned_statement_entries = unassigned_statement_entries.loc[unassigned_statement_entries['deferred'] != 1, :]    
     st.write(f'{len(unassigned_statement_entries)} unassigned statement entries!')
     st.write(unassigned_statement_entries.reset_index())
 
@@ -69,13 +71,11 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
             st.markdown(f'Assigned statement {entry_id} to taction {taction_id}')
             
     with st.beta_expander('Add Non-Matching Statement Entries'):
-        unassigned_statement_entries = data_db.statement_transactions.loc[
-            data_db.statement_transactions['taction_id'].isnull(), :
-        ]
         entry_list = unassigned_statement_entries.to_dict(orient='records')
         if len(entry_list) > 0:
             try:
-                chosen_entry_index = st.number_input('Unassigned Entry Index', max_value=(len(entry_list) - 1), min_value=0, step=1)
+                max_entry_index = len(entry_list) - 1
+                chosen_entry_index = st.number_input('Unassigned Entry Index', value=max_entry_index, max_value=max_entry_index, min_value=0, step=1)
                 chosen_entry = entry_list[chosen_entry_index]
                 st.write('#### Auto Populated Data')
                 left, middle, right = st.beta_columns(3)
@@ -124,6 +124,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                     list(data_db.methods['name']),
                 )
                 
+                statement_id = chosen_entry['id']
                 if st.button('Add Transaction!'):                    
                     subs = [(amount, category)]
                     taction_id = data_db.add_transaction(
@@ -135,8 +136,12 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                         amount,
                         subs,
                     )
-                    data_db.assign_statement_entry(chosen_entry['id'], taction_id)
+                    data_db.assign_statement_entry(statement_id, taction_id)
+                    if chosen_entry['deffered'] == 1:
+                        self.undefer_statement(statement_id)
                     st.markdown('Added transaction')
+                if st.button('Defer Transaction'):
+                    data_db.defer_statement(statement_id)
             except ValueError:
                 st.write('Failed to Load entry')
         else:
