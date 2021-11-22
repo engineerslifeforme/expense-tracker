@@ -137,7 +137,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                         subs,
                     )
                     data_db.assign_statement_entry(statement_id, taction_id)
-                    if chosen_entry['deffered'] == 1:
+                    if chosen_entry['deferred'] == 1:
                         self.undefer_statement(statement_id)
                     st.markdown('Added transaction')
                 if st.button('Defer Transaction'):
