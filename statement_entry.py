@@ -49,6 +49,16 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                     str_content = check_csv_format(st, uploaded_file)
                 else:
                     str_content = uploaded_file.read().decode('ascii')
+                if st.checkbox('Filter based on date format'):
+                    lines = str_content.split('\n')
+                    new_lines = []
+                    for line in lines:
+                        if '/' in line.split(',')[0]:
+                            new_lines.append(line)
+                        else:
+                            print(f'Removing {line}')
+                    st.write(new_lines)
+                    str_content = '\n'.join(new_lines)
                 # index_col = False, was occasionally using first column as index = bad
                 statement_transactions = pd.read_csv(StringIO(str_content), header=None, dtype=str, index_col=False)
                 with st.beta_expander('Raw Data'):
