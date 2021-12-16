@@ -73,77 +73,105 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
     with st.beta_expander('Add Non-Matching Statement Entries'):
         entry_list = unassigned_statement_entries.to_dict(orient='records')
         if len(entry_list) > 0:
-            try:
-                max_entry_index = len(entry_list) - 1
-                chosen_entry_index = st.number_input('Unassigned Entry Index', value=max_entry_index, max_value=max_entry_index, min_value=0, step=1)
-                chosen_entry = entry_list[chosen_entry_index]
-                st.write('#### Auto Populated Data')
-                left, middle, right = st.beta_columns(3)
-                date = left.date_input('Date', value=chosen_entry['date'])
-                amount = Decimal(str(middle.number_input('Amount', value=float(chosen_entry['amount']), step=0.01)))
-                account_name = right.selectbox(
-                    'Account',
-                    data_db.accounts['name'],
-                    index=list(data_db.accounts['id']).index(chosen_entry['account_id'])
-                )
-                description = st.text_input('Description', value=chosen_entry['description'])
-                st.markdown('### Close Transactions')
-                min_date = pd.to_datetime(date) - FOURTEEN_DAYS
-                max_date = pd.to_datetime(date) + FOURTEEN_DAYS
-                potential_time_matches = data_db.transactions.loc[
-                    (data_db.transactions['date'] > min_date) &
-                    (data_db.transactions['date'] < max_date) &
-                    (data_db.transactions['amount'] == amount) &
-                    (data_db.transactions['valid'] == 1)
-                ]
-                potential_time_matches =  potential_time_matches.join(data_db.statement_transactions[['id', 'taction_id']].set_index('taction_id'), on='id', rsuffix='_statement')
-                st.write(potential_time_matches)
-                st.markdown('### Similar Transactions')
-                matching_subs = data_db.transactions[data_db.transactions['amount'] == amount]
-                if len(matching_subs) > 0:
-                    st.write(matching_subs[[
-                        'amount', 
-                        'date', 
-                        'method',
-                        'account',
-                        'description',
-                        'valid',
-                    ]])
-                else:
-                    st.markdown(f'No prevoius transactions of ${amount} found!')
-                st.markdown('#### Manual Data')
-                left, right = st.beta_columns(2)
-                category_options = data_db.categories['name']
-                category = left.selectbox(
-                    f'Category',
-                    category_options,
-                    index=list(category_options).index(data_db.category_map[predict_category(chosen_entry)])
-                )
-                method = right.selectbox(
-                    'Method',
-                    list(data_db.methods['name']),
-                )
-                
-                statement_id = chosen_entry['id']
-                if st.button('Add Transaction!'):                    
-                    subs = [(amount, category)]
-                    taction_id = data_db.add_transaction(
-                        date,
-                        account_name,
-                        method,
-                        description,
-                        False,
-                        amount,
-                        subs,
-                    )
-                    data_db.assign_statement_entry(statement_id, taction_id)
-                    if chosen_entry['deferred'] == 1:
-                        self.undefer_statement(statement_id)
-                    st.markdown('Added transaction')
-                if st.button('Defer Transaction'):
-                    data_db.defer_statement(statement_id)
-            except ValueError:
-                st.write('Failed to Load entry')
+            with st.form('Batch Input'):
+                try:
+                    #max_entry_index = len(entry_list) - 1
+                    #chosen_entry_index = st.number_input('Unassigned Entry Index', value=max_entry_index, max_value=max_entry_index, min_value=0, step=1)
+                    entry_list_length = len(entry_list)
+                    if len(entry_list) > 25:
+                        index_range = range(entry_list_length-25, entry_list_length)
+                    else:
+                        index_range = range(entry_list_length)
+                    addition_list = []
+                    defer_list = []
+                    for chosen_entry_index in index_range:
+                        chosen_entry = entry_list[chosen_entry_index]
+                        st.write('#### Auto Populated Data')
+                        left, middle, right = st.beta_columns(3)
+                        date = left.date_input(f'Date #{chosen_entry_index}', value=chosen_entry['date'])
+                        amount = Decimal(str(middle.number_input(f'Amount #{chosen_entry_index}', value=float(chosen_entry['amount']), step=0.01)))
+                        account_name = right.selectbox(
+                            f'Account #{chosen_entry_index}',
+                            data_db.accounts['name'],
+                            index=list(data_db.accounts['id']).index(chosen_entry['account_id'])
+                        )
+                        description = st.text_input(f'Description #{chosen_entry_index}', value=chosen_entry['description'])
+                        st.markdown('### Close Transactions')
+                        min_date = pd.to_datetime(date) - FOURTEEN_DAYS
+                        max_date = pd.to_datetime(date) + FOURTEEN_DAYS
+                        potential_time_matches = data_db.transactions.loc[
+                            (data_db.transactions['date'] > min_date) &
+                            (data_db.transactions['date'] < max_date) &
+                            (data_db.transactions['amount'] == amount) &
+                            (data_db.transactions['valid'] == 1)
+                        ]
+                        potential_time_matches =  potential_time_matches.join(data_db.statement_transactions[['id', 'taction_id']].set_index('taction_id'), on='id', rsuffix='_statement')
+                        st.write(potential_time_matches)
+                        st.markdown('### Similar Transactions')
+                        matching_subs = data_db.transactions[data_db.transactions['amount'] == amount]
+                        if len(matching_subs) > 0:
+                            st.write(matching_subs[[
+                                'amount', 
+                                'date', 
+                                'method',
+                                'account',
+                                'description',
+                                'valid',
+                            ]])
+                        else:
+                            st.markdown(f'No prevoius transactions of ${amount} found!')
+                        st.markdown('#### Manual Data')
+                        left, right = st.beta_columns(2)
+                        category_options = data_db.categories['name']
+                        category = left.selectbox(
+                            f'Category #{chosen_entry_index}',
+                            category_options,
+                            index=list(category_options).index(data_db.category_map[predict_category(chosen_entry)])
+                        )
+                        method = right.selectbox(
+                            f'Method #{chosen_entry_index}',
+                            list(data_db.methods['name']),
+                            index=4,
+                        )
+                        
+                        statement_id = chosen_entry['id']
+                        action = st.radio(f'Action #{chosen_entry_index}', ['Add', 'Defer'])
+                        if action == 'Add':
+                            addition_list.append({
+                                'transaction': {
+                                    'date': date,
+                                    'account_name': account_name,
+                                    'method': method,
+                                    'description': description,
+                                    'amount': amount,
+                                    'subs': [(amount,category)],
+                                },
+                                'statement_id': statement_id,
+                                'deferred': chosen_entry['deferred']
+                            })
+                        else:
+                            defer_list.append(statement_id)
+                    if st.form_submit_button('Process'):
+                        for addition_item in addition_list:
+                            transaction_entry_data = addition_item['transaction']
+                            taction_id = data_db.add_transaction(
+                                transaction_entry_data['date'],
+                                transaction_entry_data['account_name'],
+                                transaction_entry_data['method'],
+                                transaction_entry_data['description'],
+                                False,
+                                transaction_entry_data['amount'],
+                                transaction_entry_data['subs'],
+                            )
+                            data_db.assign_statement_entry(addition_item['statement_id'], taction_id)
+                            if addition_item['deferred'] == 1:
+                                self.undefer_statement(addition_item['statement_id'])
+                            st.write(f"Added statement {addition_item['statement_id']}")
+                        for defer_item in defer_list:
+                            data_db.defer_statement(defer_item)
+                            st.write(f"Deferred statement {defer_item}")
+                except ValueError:
+                    st.write('Failed to Load entry')
         else:
             st.markdown('No entries to be evaluated')
 
