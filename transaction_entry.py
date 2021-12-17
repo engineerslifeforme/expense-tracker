@@ -15,13 +15,13 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
 
     st.markdown(f'## {action_types[0]}')
     
-    left, right = st.beta_columns([1,4])
+    left, right = st.columns([1,4])
     date = right.date_input('Transaction Date')
     is_receipt = left.checkbox('Receipt?')
     description = st.text_input('Description')
     
     if action_type == action_types[0]:
-        left, right = st.beta_columns([1, 3])
+        left, right = st.columns([1, 3])
         transaction_types = ['Withdraw', 'Deposit']
         transaction_type = left.radio(
             'Type',
@@ -42,7 +42,7 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
         subs = []
         for x in range(sub_quantity):
             label = x + 1
-            left, right = st.beta_columns(2)
+            left, right = st.columns(2)
             sub_amount = Decimal(str(left.number_input(
                 f'Amount #{label}',
                 min_value = 0.00,
@@ -56,7 +56,7 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
             subs.append((multiplier*sub_amount, category))
         amount = round(amount, 2)
         st.markdown(f'**Total: ${amount}**')
-        left, right = st.beta_columns(2)
+        left, right = st.columns(2)
         method = left.selectbox(
             'Method',
             list(data_db.methods['name']),
@@ -81,7 +81,7 @@ def display_transaction_entry(st: stl, data_db: DbAccess):
             )
     # Transfer
     elif action_type == action_types[1]:
-        left, middle, right = st.beta_columns(3)
+        left, middle, right = st.columns(3)
         amount = Decimal(str(left.number_input(
             'Amount',
             min_value = 0.00,

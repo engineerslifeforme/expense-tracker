@@ -6,3 +6,4 @@
 *.joblib
 csvs
 fix.sh
+statement_word_list.csv

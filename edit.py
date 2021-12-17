@@ -4,7 +4,7 @@ import streamlit as stl
 from db_access import DbAccess
 
 def display_edit(st: stl, db_data:DbAccess):
-    left, right = st.beta_columns(2)
+    left, right = st.columns(2)
     selected_table = left.selectbox(
         'Table',
         options=[
@@ -23,7 +23,7 @@ def display_edit(st: stl, db_data:DbAccess):
     )
     selected_table_data = db_data.get_data(selected_table)
     st.write(selected_table_data[selected_table_data['id'] == id_to_change])
-    left, right = st.beta_columns(2)
+    left, right = st.columns(2)
     field_to_change = left.selectbox(
         'Field',
         options = list(selected_table_data.columns)

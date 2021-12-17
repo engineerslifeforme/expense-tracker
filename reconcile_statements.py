@@ -56,8 +56,8 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                     st.markdown(f'Multiple matches for {entry_id} | {entry_description}')
                     st.write(potential_matches)
 
-    with st.beta_expander('Manual Addition'):
-        left, right = st.beta_columns(2)
+    with st.expander('Manual Addition'):
+        left, right = st.columns(2)
         entry_id = left.number_input('Statement Entry ID', min_value=0, step=1)
         taction_id = right.number_input('Taction ID', min_value=0, step=1)
         if entry_id != 0:
@@ -70,7 +70,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
             data_db.assign_statement_entry(entry_id, taction_id)
             st.markdown(f'Assigned statement {entry_id} to taction {taction_id}')
             
-    with st.beta_expander('Add Non-Matching Statement Entries'):
+    if st.checkbox('Add Non-Matching Statement Entries'):
         entry_list = unassigned_statement_entries.to_dict(orient='records')
         if len(entry_list) > 0:
             with st.form('Batch Input'):
@@ -87,7 +87,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                     for chosen_entry_index in index_range:
                         chosen_entry = entry_list[chosen_entry_index]
                         st.write('#### Auto Populated Data')
-                        left, middle, right = st.beta_columns(3)
+                        left, middle, right = st.columns(3)
                         date = left.date_input(f'Date #{chosen_entry_index}', value=chosen_entry['date'])
                         amount = Decimal(str(middle.number_input(f'Amount #{chosen_entry_index}', value=float(chosen_entry['amount']), step=0.01)))
                         account_name = right.selectbox(
@@ -121,7 +121,7 @@ def display_reconcile_statements(st: stl, data_db: DbAccess):
                         else:
                             st.markdown(f'No prevoius transactions of ${amount} found!')
                         st.markdown('#### Manual Data')
-                        left, right = st.beta_columns(2)
+                        left, right = st.columns(2)
                         category_options = data_db.categories['name']
                         category = left.selectbox(
                             f'Category #{chosen_entry_index}',

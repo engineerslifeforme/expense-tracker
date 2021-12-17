@@ -6,7 +6,7 @@ import plotly.express as px
 from db_access import DbAccess
 
 def display_plot(st: stl, db_data:DbAccess):
-    with st.beta_expander('Total'):
+    with st.expander('Total'):
         real_transactions = db_data.transactions.loc[db_data.transactions['valid'] == 1, :]
         real_transactions = real_transactions.loc[real_transactions['transfer'] == 0, :]
         real_transactions['month_year'] = real_transactions['date'].dt.to_period('M').astype(str)
@@ -26,7 +26,7 @@ def display_plot(st: stl, db_data:DbAccess):
                 title='Expenses'
             )
         )
-    with st.beta_expander('Budget Analysis'):
+    with st.expander('Budget Analysis'):
         budget = st.selectbox(
             'Budget',
             options=list(db_data.budgets['name'])

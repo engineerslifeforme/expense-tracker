@@ -9,7 +9,7 @@ def display_account_management(st: stl, db_data: DbAccess):
     st.markdown('### Current Accounts')
     st.write(db_data.accounts)
     st.markdown('### Add Account')
-    left, middle, right = st.beta_columns(3)
+    left, middle, right = st.columns(3)
     new_name = left.text_input(
         'New Account Name'
     )

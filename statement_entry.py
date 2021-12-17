@@ -19,7 +19,7 @@ def display_statement_entry(st: stl, data_db: DbAccess):
     uploaded_file = st.file_uploader('Statement file')
     if uploaded_file is not None:
         st.write('Use month = 1 for yearly statements.')
-        left, middle, right = st.beta_columns(3)
+        left, middle, right = st.columns(3)
         month = left.number_input('Statement Ending Month', min_value=1, max_value=12, step=1)
         year = middle.number_input('Statement Ending Year', min_value=2010, max_value=2050, step=1)
         account_id = data_db.account_map_reverse[right.selectbox(
@@ -37,7 +37,7 @@ def display_statement_entry(st: stl, data_db: DbAccess):
         if st.checkbox('Map year?'):
             map_entries = st.number_input('# of Maps needed?', min_value=0, step=1)
             for x in range(map_entries):
-                left, right = st.beta_columns(2)
+                left, right = st.columns(2)
                 month_to_map = left.number_input(f'({x}) Month to map', min_value=1, max_value=12, step=1)
                 year_to_map = right.number_input(f'({x}) Year to map', min_value=2010, max_value=2050, step=1)
                 month_to_year_map[str(month_to_map)] = year_to_map
@@ -61,7 +61,7 @@ def display_statement_entry(st: stl, data_db: DbAccess):
                     str_content = '\n'.join(new_lines)
                 # index_col = False, was occasionally using first column as index = bad
                 statement_transactions = pd.read_csv(StringIO(str_content), header=None, dtype=str, index_col=False)
-                with st.beta_expander('Raw Data'):
+                with st.expander('Raw Data'):
                     st.write(statement_transactions)
                 bad_rows = statement_transactions[statement_transactions[0].isna()]
                 if len(bad_rows) > 0:

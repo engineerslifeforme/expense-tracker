@@ -24,7 +24,7 @@ def display_search(st: stl, data_db: DbAccess):
         start_date, end_date = st.slider('Select date', min_value=start_date, value=[start_date, end_date], max_value=end_date)
         st.markdown(f'Filtered from {start_date} to {end_date}')
     
-    with st.beta_expander('Transaction Search'):
+    with st.expander('Transaction Search'):
         filtered = data_db.transactions
         show = False        
         
@@ -62,7 +62,7 @@ def display_search(st: stl, data_db: DbAccess):
         else:
             st.markdown('Enter some data to search')
     
-    with st.beta_expander('Sub Search'):
+    with st.expander('Sub Search'):
         filtered = data_db.subs
         show = False
         if sub_id != 0:
@@ -83,7 +83,7 @@ def display_search(st: stl, data_db: DbAccess):
             st.markdown('Enter some data to search')
         st.write(filtered.sort_values(by='id', ascending=False).head(15))
 
-    with st.beta_expander('Statement Search'):
+    with st.expander('Statement Search'):
         data_to_show = data_db.statement_transactions
 
         if taction_id != 0 and not st.checkbox('Disable Taction Filter'):
