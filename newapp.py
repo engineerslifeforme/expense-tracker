@@ -21,6 +21,9 @@ statement_transactions = db.get_statement_transactions(
 st.markdown(f'{len(statement_transactions)} Entries')
 st.write(vt.translate_statement_transactions(statement_transactions))
 
+st.write(statement_transactions['date'].values[0])
+st.write(type(statement_transactions['date'].values[0]))
+
 """### Assignment Methods"""
 if st.button('Attempt Auto-Assign'):
     st.markdown('Auto-Assigning...')
