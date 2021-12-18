@@ -48,8 +48,8 @@ class DbAccess(object):
         account_id: int = None,
         only_valid: bool = True):
         
+        # amount is the total not the sub
         subs = self.get_subtotals(
-            amount=amount,
             only_valid=only_valid,
         )
         tactions = self.get_tactions(
@@ -57,8 +57,11 @@ class DbAccess(object):
             before_date=before_date,
             account_id=account_id,
             only_valid=only_valid,
-        )
-        sub_totals = subs.groupby('taction_id').sum()
+        ).set_index('id')
+        sub_totals = subs[['amount', 'taction_id']].groupby('taction_id').sum().reset_index(drop=False)
+        sub_totals = sub_totals.loc[sub_totals['amount']==amount, :]
+        transactions = sub_totals.join(tactions, on='taction_id', how='inner', lsuffix='_sub')
+        return transactions
 
     def get_subtotals(self, 
         amount: Decimal = None,
