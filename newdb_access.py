@@ -242,6 +242,29 @@ class DbAccess(object):
             self.update_budget(sub_amount, category_id)
         return new_id
 
+    def add_transfer(self, date, withdrawal_account: str, deposit_account: str, description, receipt, amount: Decimal):
+        withdraw_amount = Decimal('-1.00') * amount
+        self.add_transaction(
+            date,
+            withdrawal_account,
+            'Automated',
+            description,
+            receipt,
+            withdraw_amount,
+            [(withdraw_amount, 'Transfer')],
+            transfer=True,
+        )
+        self.add_transaction(
+            date,
+            deposit_account,
+            'Automated',
+            description,
+            receipt,
+            amount,
+            [(amount, 'Transfer')],
+            transfer=True,
+        )
+
     def get_next_sub_id(self):
         return self.get_subtotals()['id'].max() + 1
 
