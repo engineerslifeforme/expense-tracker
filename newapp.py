@@ -5,6 +5,7 @@ import pandas as pd
 
 from newdb_access import DbAccess
 import view_translation as vt
+from ml_statement import predict_category
 
 FOURTEEN_DAYS = pd.Timedelta(days=14)
 
@@ -23,12 +24,16 @@ statement_transactions = db.get_statement_transactions(
 st.markdown(f'{len(statement_transactions)} Entries')
 st.write(vt.translate_statement_transactions(statement_transactions))
 
-st.write(statement_transactions['date'].values[0])
-st.write(type(statement_transactions['date'].values[0]))
+categories = db.get_categories()
+methods = db.get_methods()
+accounts = db.get_accounts()
 
 """### Assignment Methods"""
 #if st.button('Attempt Auto-Assign'):
     #st.markdown('Auto-Assigning...')
+
+default_method = st.selectbox('Default Method', options=methods['name'])
+
 entries = statement_transactions.to_dict(orient='records')
 index = st.number_input('Entry Index', step=1)
 entry = entries[index]
@@ -36,10 +41,50 @@ entry = entries[index]
 if st.checkbox('Add Dialog'):
     left, right = st.columns(2)
     date = left.date_input('Date', value=entry['date'])
-    amount = right.number_input('Amount', value=float(entry['amount']), step=0.01)
+    amount = Decimal(str(right.number_input('Amount', value=float(entry['amount']), step=0.01)))
+    left, middle, right = st.columns(3)
+    category = left.selectbox(
+        'Category', 
+        options=categories['name'],
+        index=list(categories['name']).index(db.category_translate(
+            predict_category(entry),
+            'name',
+        ))
+    )
+    method = middle.selectbox(
+        'Method', 
+        options=methods['name'],
+        index=list(methods['name']).index(default_method),
+    )
+    account = right.selectbox(
+        'Account', 
+        options=accounts['name'],
+        index=list(accounts['name']).index(
+            db.account_translate(entry['account_id'], 'name')
+        )
+    )
     description = st.text_input('Description', value=entry['description'])
-
-st.write(entry)
+    action = st.radio('Action', options=['Add', 'Defer', 'Nothing'])
+    if action == 'Add':
+        if st.button('Add'):
+            st.markdown('Adding...')
+            taction_id = db.add_transaction(
+                date,
+                account,
+                method,
+                description,
+                False,
+                amount,
+                [(amount, category)],
+            )
+            db.assign_statement_entry(entry['id'], taction_id)
+            if entry['deferred'] == 1:
+                db.undefer_statement(entry['id'])
+    elif action == 'Defer':
+        if st.button('Defer'):
+            st.markdown('Deferring...')
+            db.defer_statement(entry['id'])
+    
 min_date = entry['date'] - FOURTEEN_DAYS
 max_date = entry['date'] + FOURTEEN_DAYS
 potential_matches = db.get_transactions(
