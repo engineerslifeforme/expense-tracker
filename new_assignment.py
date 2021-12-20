@@ -21,7 +21,7 @@ def show_assignment_page(st: stl, db: DbAccess):
     )
     st.markdown(f'{len(statement_transactions)} Entries')
     st.write(vt.translate_statement_transactions(statement_transactions))
-
+    
     categories = db.get_categories()
     methods = db.get_methods()
     accounts = db.get_accounts()
@@ -35,15 +35,17 @@ def show_assignment_page(st: stl, db: DbAccess):
     entries = statement_transactions.to_dict(orient='records')
     
     if st.checkbox('Assign Statements'):
+        batch_quantity = st.number_input('Batch Quantity', value=25, step=1)
         with st.form('Assignments'):
             i = 0
             add_list = []
             defer_list = []
             assign_list = []
-            while i < min([25, len(entries)]):
+            while i < min([batch_quantity, len(entries)]):
                 entry = entries[i]
                 entry_id = entry['id']
 
+                st.markdown(f'### Entry #{i}')
                 left, right = st.columns(2)
                 date = left.date_input(f'Date #{i}', value=entry['date'])
                 amount = Decimal(str(right.number_input(f'Amount #{i}', value=float(entry['amount']), step=0.01)))
@@ -70,6 +72,16 @@ def show_assignment_page(st: stl, db: DbAccess):
                 )
                 description = st.text_input(f'Description #{i}', value=entry['description'])
                 action = st.radio(f'Action #{i}', options=['Add', 'Defer', 'Assign', 'Nothing'])
+
+                amount_matches = db.get_transactions(
+                    amount=entry['amount'],
+                    account_id=entry['account_id'],
+                )
+
+                taction_id = st.selectbox(
+                    f'Transaction ID #{i}',
+                    options=amount_matches['taction_id'],
+                )
                 if action == 'Add':
                     add_list.append({
                         'date': date,
@@ -80,26 +92,26 @@ def show_assignment_page(st: stl, db: DbAccess):
                         'subs': [(amount, category)],
                         'entry_id': entry_id,
                         'deferred': entry['deferred'],
-                    })    
+                    })
                 elif action == 'Defer':
                     defer_list.append(entry_id)    
                 elif action == 'Assign':
-                    taction_id = st.number_input(f'Transaction ID #{i}', step=1)
-                    if taction_id !=0:
-                        st.write(db.get_tactions(id_request=taction_id))
                     assign_list.append((entry_id, taction_id))    
                 else:
                     st.markdown(f'Unknown action: {action}')
                     
-                st.markdown('### Amount Matches')
-                st.write(vt.translate_transactions(db.get_transactions(amount=entry['amount'])))
+                st.markdown('#### Amount Matches')
+                st.write(vt.translate_transactions(amount_matches))
                 i += 1
             if st.form_submit_button('Process'):
                 for item in defer_list:
+                    st.markdown(f'Deferring {item}')
                     db.defer_statement(item)
                 for statement_id, taction_id in assign_list:
+                    st.markdown(f'Assigning statement {statement_id} to taction {taction_id}')
                     db.assign_statement_entry(statement_id, taction_id)
                 for data in add_list:
+                    st.markdown(f"Creating new transaction for statement {data['entry_id']}")
                     taction_id = db.add_transaction(
                         data['date'],
                         data['account'],
