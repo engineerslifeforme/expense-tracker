@@ -22,7 +22,7 @@ def show_input(st: stl, db: DbAccess):
 
     if input_type == 'Transaction':
         left, middle, right = st.columns(3)
-        withdraw = left.checkbox('Withdraw')
+        withdraw = left.checkbox('Withdraw', value=True)
         if withdraw:
             multiplier = Decimal('-1.00')
         else:
@@ -74,6 +74,11 @@ def show_input(st: stl, db: DbAccess):
             
 
     if amount != ZERO:
-        st.write(vt.translate_transactions(db.get_transactions(
-            amount=amount
-        )))
+        matches = db.get_transactions(
+            amount=amount,
+            absolute_value=True,
+        )
+        if len(matches) > 0:
+            st.write(vt.translate_transactions(matches))
+        else:
+            st.markdown(f'No matches for {amount}')

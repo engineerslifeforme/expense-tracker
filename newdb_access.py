@@ -46,6 +46,7 @@ class DbAccess(object):
         after_date: np.datetime64 = None,
         before_date: np.datetime64 = None,
         account_id: int = None,
+        absolute_value: bool = False,
         only_valid: bool = True):
         
         # amount is the total not the sub
@@ -59,18 +60,26 @@ class DbAccess(object):
             only_valid=only_valid,
         ).set_index('id')
         sub_totals = subs[['amount', 'taction_id']].groupby('taction_id').sum().reset_index(drop=False)
-        sub_totals = sub_totals.loc[sub_totals['amount']==amount, :]
+        if amount is not None:
+            if absolute_value:
+                sub_totals = sub_totals.loc[sub_totals['amount'].abs()==abs(amount), :]
+            else:
+                sub_totals = sub_totals.loc[sub_totals['amount']==amount, :]
         transactions = sub_totals.join(tactions, on='taction_id', how='inner', lsuffix='_sub')
         return transactions
 
     def get_subtotals(self, 
         amount: Decimal = None,
+        absolute_value: bool = False,
         only_valid: bool = True):
         sql = 'SELECT * FROM sub'
 
         where_list = []
         if amount is not None:
-            where_list.append(f'amount = {amount}')
+            if absolute_value:
+                where_list.append(f'amount = abs({abs(amount)})')
+            else:
+                where_list.append(f'amount = {amount}')
         if only_valid:
             where_list.append(f'valid = 1')
         sql += generate_where_statement(where_list)
@@ -88,7 +97,8 @@ class DbAccess(object):
         after_date: np.datetime64 = None,
         before_date: np.datetime64 = None,
         only_valid: bool = True,
-        account_id: int = None) -> pd.DataFrame:
+        account_id: int = None,
+        id_request: int = None) -> pd.DataFrame:
         sql = 'SELECT * FROM taction'
 
         where_list = []
@@ -100,6 +110,8 @@ class DbAccess(object):
             where_list.append(f'valid = 1')
         if account_id is not None:
             where_list.append(f'account_id = {account_id}')
+        if id_request is not None:
+            where_list.append(f'id = {id_request}')
         sql += generate_where_statement(where_list)
         print(sql)
 
