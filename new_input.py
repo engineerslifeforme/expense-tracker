@@ -79,6 +79,6 @@ def show_input(st: stl, db: DbAccess):
             absolute_value=True,
         )
         if len(matches) > 0:
-            st.write(vt.translate_transactions(matches))
+            st.write(vt.translate_transactions(matches.copy(deep=True)))
         else:
             st.markdown(f'No matches for {amount}')

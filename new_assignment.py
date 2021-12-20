@@ -20,7 +20,7 @@ def show_assignment_page(st: stl, db: DbAccess):
         include_deferred=False
     )
     st.markdown(f'{len(statement_transactions)} Entries')
-    st.write(vt.translate_statement_transactions(statement_transactions))
+    st.write(vt.translate_statement_transactions(statement_transactions.copy(deep=True)))
     
     categories = db.get_categories()
     methods = db.get_methods()
@@ -101,7 +101,7 @@ def show_assignment_page(st: stl, db: DbAccess):
                     st.markdown(f'Unknown action: {action}')
                     
                 st.markdown('#### Amount Matches')
-                st.write(vt.translate_transactions(amount_matches))
+                st.write(vt.translate_transactions(amount_matches.copy(deep=True)))
                 i += 1
             if st.form_submit_button('Process'):
                 for item in defer_list:

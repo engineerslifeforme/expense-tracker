@@ -46,6 +46,7 @@ def view_statement_entry(st: stl, db: DbAccess):
         amount_column = st.selectbox('Amount Column', options=raw_data.columns)
 
         formed_data = raw_data
+        formed_data = formed_data.loc[~formed_data[date_column].isna(), :]
         formed_data['date'] = fix_dates(
             raw_data[date_column],
             year,
@@ -54,6 +55,43 @@ def view_statement_entry(st: stl, db: DbAccess):
         formed_data['description'] = raw_data[description_column]
         formed_data['amount'] = raw_data[amount_column].str.replace(',', '').apply(Decimal) * Decimal('-1.00')
 
-        view_data = formed_data
+        for column in formed_data.columns:
+            if column not in ['date', 'amount', 'description']:
+                formed_data = formed_data.drop(column, axis='columns')
+
+        view_data = formed_data.copy(deep=True)
         view_data['amount'] = formed_data['amount'].astype(float)
+
         st.write(view_data)
+
+        current_statements = db.get_statement_transactions()
+        if st.button('Add to database'):
+            added = 0
+            already_exists = 0
+            for item in formed_data.to_dict(orient='records'):
+                amount = item['amount']
+                date = item['date']
+                description = item['description']
+                if amount == 0.0:
+                    continue
+                duplicates = current_statements.loc[
+                    (current_statements['date'] == date) &
+                    (current_statements['account_id'] == account_id) &
+                    (current_statements['amount'] == amount) &
+                    (current_statements['description'] == description)
+                ]
+                if len(duplicates) == 0:
+                    db.add_statement_transaction(
+                        date,
+                        month,
+                        year,
+                        account_id,
+                        amount,
+                        description=description,
+                    )
+                    added += 1
+                else:
+                    st.write(f'{date} - {description} already exists! Aborting...')
+                    already_exists += 1
+            st.write(f'Added {added}')
+            st.write(f'{already_exists} Already Existed')

@@ -313,6 +313,9 @@ class DbAccess(object):
     def get_next_taction_id(self):
         return self.get_tactions()['id'].max() + 1
 
+    def get_next_statement_transaction_id(self):
+        return self.get_statement_transactions()['id'].max() + 1
+
     def update_budget(self, amount: Decimal, category_id: int):
         self._update_add(
             'budget',
@@ -349,4 +352,27 @@ class DbAccess(object):
         else:
             self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE id={item_id}")
         self.con.commit()
+
+    def add_statement_transaction(self, date, month:int, year:int, account_id:int, amount:Decimal, description:str = None):
+        fields = [
+            'id',
+            'date',
+            'statement_month',
+            'statement_year',
+            'account_id',
+            'amount',
+        ]
+        new_id = self.get_next_statement_transaction_id()
+        values = [
+            new_id,
+            date,
+            month,
+            year,
+            account_id,
+            amount
+        ]
+        if description is not None:
+            fields.append('description')        
+            values.append(description)
+        self._insert('statement_transactions', fields, values)
 
