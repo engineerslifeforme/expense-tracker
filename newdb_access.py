@@ -21,7 +21,8 @@ class DbAccess(object):
 
     def get_statement_transactions(self, 
         include_assigned: bool = True,
-        include_deferred: bool = True) -> pd.DataFrame:
+        include_deferred: bool = True,
+        request_taction_id: int = None) -> pd.DataFrame:
         
         sql = 'SELECT * FROM statement_transactions'
         
@@ -30,6 +31,8 @@ class DbAccess(object):
             where_list.append('taction_id IS NULL')
         if not include_deferred:
             where_list.append('deferred = 0')
+        if request_taction_id is not None:
+            where_list.append(f'taction_id = {request_taction_id}')
         sql += generate_where_statement(where_list)
         
         data = pd.read_sql_query(
