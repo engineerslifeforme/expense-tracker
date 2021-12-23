@@ -2,10 +2,10 @@
 
 import pandas as pd
 
-def translate_statement_transactions(data: pd.DataFrame) -> pd.DataFrame:
+def translate_statement_transactions(data: pd.DataFrame, sort_column: str = 'date') -> pd.DataFrame:
     data = data.drop(['statement_month', 'statement_year'], axis='columns')
     data['amount'] = data['amount'].astype(float)
-    data = data.sort_values('date', ascending=False)
+    data = data.sort_values(sort_column, ascending=False)
     data = data.style\
         .format(precision=0, subset=['taction_id'])\
         .format(precision=2, subset=['amount'])\
