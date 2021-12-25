@@ -86,7 +86,7 @@ def batch_assignment(
                 st.markdown(f'Unknown action: {action}')
                 
             st.markdown('#### Amount Matches')
-            st.write(vt.translate_transactions(amount_matches.copy(deep=True)))
+            st.write(vt.translate_transactions(amount_matches.copy(deep=True), db=db))
             i += 1
         if st.form_submit_button('Process'):
             for item in defer_list:
