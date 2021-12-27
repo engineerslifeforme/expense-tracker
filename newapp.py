@@ -7,6 +7,7 @@ from new_assignment import show_assignment_page
 from new_statement_entry import view_statement_entry
 from new_input import show_input
 from new_integrity_check import integrity_check
+from new_search import view_search
 
 db = DbAccess('example.db')
 
@@ -19,6 +20,7 @@ task = st.sidebar.radio('Tasks', options=[
     'Statement Assignment',
     'Statement Entry',
     'Integrity Check',
+    'Search',
 ])
 
 if task == 'Statement Assignment':
@@ -29,5 +31,7 @@ elif task == 'Statement Entry':
     view_statement_entry(st, db)
 elif task == 'Integrity Check':
     integrity_check(st, db)
+elif task == 'Search':
+    view_search(st, db)
 else:
     st.markdown(f'Unknown task {task}')

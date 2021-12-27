@@ -15,7 +15,7 @@ def translate_statement_transactions(data: pd.DataFrame, sort_column: str = 'dat
     return data
 
 def translate_transactions(data: pd.DataFrame, db: DbAccess = None) -> pd.DataFrame:
-    data['not_real'] = data['not_real'].astype(int)
+    data['not_real'] = data['not_real'].fillna(0).astype(int)
     data['amount'] = data['amount'].astype(float)
     if db is not None:
         data['account_id'] = data['account_id'].apply(db.account_translate, args=('name',))

@@ -74,6 +74,7 @@ class DbAccess(object):
     def get_subtotals(self, 
         amount: Decimal = None,
         absolute_value: bool = False,
+        category_id: int = None,
         only_valid: bool = True):
         sql = 'SELECT * FROM sub'
 
@@ -85,6 +86,8 @@ class DbAccess(object):
                 where_list.append(f'amount = {amount}')
         if only_valid:
             where_list.append(f'valid = 1')
+        if category_id is not None:
+            where_list.append(f'category_id = {category_id}')
         sql += generate_where_statement(where_list)
         print(sql)
 
