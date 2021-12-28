@@ -6,6 +6,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 import numpy as np
 
+from newdb_access import DbAccess
+
 SVC_MODEL = load('statement_to_category_model.joblib')
 SCALER = load('statement_scaler.joblib')
 WORD_LIST = load('word_list.joblib')
@@ -28,13 +30,14 @@ def predict_category(statement_entry: dict) -> int:
     scaled_data = SCALER.transform(statement_df)
     return SVC_MODEL.predict(scaled_data)[0]
 
-def train_model(db):
+def train_model(db: DbAccess):
     global SVC_MODEL
     global SCALER
     global WORD_LIST
     
     word_counts = {}
-    for text in db.statement_transactions['description'].values:
+    statement_transactions = db.get_statement_transactions()
+    for text in statement_transactions['description'].values:
         for word in text.split(' '):
             if word not in word_counts:
                 word_counts[word] = 0
@@ -47,7 +50,7 @@ def train_model(db):
     for key in keys_to_remove:
         word_counts.pop(key)
 
-    statement_data = db.statement_transactions.copy()
+    statement_data = statement_transactions.copy()
     statement_data = statement_data.loc[~statement_data['taction_id'].isna(), :]
     taction_assignments = statement_data['taction_id']
     word_list = []
@@ -60,7 +63,7 @@ def train_model(db):
 
     statement_data = statement_data.drop(['id', 'date', 'statement_month', 'statement_year', 'description'], axis='columns')
 
-    subs = db.subs.copy()
+    subs = db.get_subtotals().copy()
     matching_subs = subs.loc[subs['taction_id'].isin(taction_assignments), :]
     # We can only learn from transactions with single category
     count_map = matching_subs['taction_id'].value_counts().to_dict()
