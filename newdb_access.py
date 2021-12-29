@@ -22,6 +22,7 @@ class DbAccess(object):
     def get_statement_transactions(self, 
         include_assigned: bool = True,
         include_deferred: bool = True,
+        amount: Decimal = None,
         request_taction_id: int = None) -> pd.DataFrame:
         
         sql = 'SELECT * FROM statement_transactions'
@@ -31,6 +32,8 @@ class DbAccess(object):
             where_list.append('taction_id IS NULL')
         if not include_deferred:
             where_list.append('deferred = 0')
+        if amount is not None:
+            where_list.append(f'amount = {amount}')
         if request_taction_id is not None:
             where_list.append(f'taction_id = {request_taction_id}')
         sql += generate_where_statement(where_list)
@@ -75,6 +78,7 @@ class DbAccess(object):
         amount: Decimal = None,
         absolute_value: bool = False,
         category_id: int = None,
+        taction_id: int = None,
         only_valid: bool = True):
         sql = 'SELECT * FROM sub'
 
@@ -86,6 +90,8 @@ class DbAccess(object):
                 where_list.append(f'amount = {amount}')
         if only_valid:
             where_list.append(f'valid = 1')
+        if taction_id is not None:
+            where_list.append(f'taction_id = {taction_id}')
         if category_id is not None:
             where_list.append(f'category_id = {category_id}')
         sql += generate_where_statement(where_list)
@@ -381,4 +387,30 @@ class DbAccess(object):
             fields.append('description')        
             values.append(description)
         self._insert('statement_transactions', fields, values)
+
+    def delete_transaction(self, transaction_id: int):
+        statements = self.get_statement_transactions(request_taction_id=transaction_id)
+        for statement_id in list(statements['id']):
+            self._update('statement_transactions', 'taction_id', None, statement_id)
+            print(f'Reset statement {statement_id}')
+        subs = self.get_subtotals(taction_id=transaction_id)
+        amount = Decimal('0.00')
+        for sub in subs.to_dict(orient='records'):
+            if sub['valid'] != 1:
+                raise ValueError('Sub was not valid')
+            sub_amount = sub['amount']
+            amount += sub_amount
+            self.update_budget(Decimal('-1.00')*sub_amount, sub['category_id'])
+            self._update(
+                'sub', 'valid', 0, sub['id']
+            )
+            print(f"Invalidating sub {sub['id']}")
+        account_id = self.get_tactions(id_request=transaction_id)['account_id'].values[0]
+        taction_valid = self.get_tactions(id_request=transaction_id)['valid'].values[0]
+        if taction_valid != 1:
+            raise ValueError('taction was not valid')
+        self.update_account(Decimal('-1.00')*amount, self.account_translate(account_id, 'name'))
+        self._update(
+            'taction', 'valid', 0, transaction_id
+        )
 

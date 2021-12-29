@@ -10,7 +10,7 @@ def display_delete(st: stl, data_db: DbAccess):
         step=1,
     )
     if transaction_id != 0:
-        matches = data_db.transactions[data_db.transactions['id'] == transaction_id]
+        matches = data_db.get_tactions(id_request=transaction_id)
         if len(matches) == 0:
             st.write('Invalid transaction ID!')
         else:
@@ -21,6 +21,6 @@ def display_delete(st: stl, data_db: DbAccess):
     if delete:
         try:
             data_db.delete_transaction(transaction_id)
-            st.write(f'Deleted {transaction_id}')
+            st.success(f'Deleted {transaction_id}')
         except ValueError:
-            st.write('Item failed to delete')
+            st.error('Item failed to delete')

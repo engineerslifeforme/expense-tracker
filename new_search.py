@@ -19,6 +19,9 @@ def view_search(st: stl, db: DbAccess):
         'Categories',
         options=db.get_categories()['name']
     )
+    taction_id = st.number_input('Taction ID', step=1)
+    if taction_id == 0:
+        taction_id = None
 
     if st.checkbox('Transactions'):
         transactions = db.get_transactions(amount=amount)
@@ -31,6 +34,9 @@ def view_search(st: stl, db: DbAccess):
         st.write(vt.translate_transactions(transactions, db=db))
 
         #view_data = vt.translate_transactions(transactions)
+    if st.checkbox('Statements'):
+        statements = db.get_statement_transactions(amount=amount, request_taction_id=taction_id)
+        st.write(vt.translate_statement_transactions(statements))
         
 
 
