@@ -13,7 +13,7 @@ from auto_assign import auto_assign
 FOURTEEN_DAYS = pd.Timedelta(days=14)
 
 def show_assignment_page(st: stl, db: DbAccess):
-    """## Statement Assignment"""
+    st.markdown('## Statement Assignment')
     include_deferred = st.checkbox('Include Deferred Entries')
 
     statement_transactions = db.get_statement_transactions(
@@ -25,9 +25,13 @@ def show_assignment_page(st: stl, db: DbAccess):
 
     entries = statement_transactions.to_dict(orient='records')
 
-    """### Assignment Methods"""
+    st.markdown('### Assignment Methods')
+    st.markdown('#### Auto-Assign')
     if st.checkbox('Attempt Auto-Assign'):
         auto_assign(st, db, entries)
     
+    st.markdown('#### Batch Assignment')
+    methods = db.get_methods()
+    default_method = st.selectbox('Default Method', options=methods['name'])
     if st.checkbox('Assign Statements'):
-        batch_assignment(st, db, entries)
+        batch_assignment(st, db, default_method, entries)

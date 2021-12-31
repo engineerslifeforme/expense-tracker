@@ -44,22 +44,28 @@ def view_statement_entry(st: stl, db: DbAccess):
         formed_data = raw_data.copy(deep=True)
 
         date_column = st.selectbox('Date Column', options=raw_data.columns)
-        description_column = st.selectbox('Description Column', options=raw_data.columns)
+        description_column = st.selectbox('Description Column', options=raw_data.columns, index=1)
         if st.checkbox('Transactions Split?'):
-            deposit_column = st.selectbox('Deposit Column', options=raw_data.columns)
+            deposit_column = st.selectbox('Deposit Column', options=raw_data.columns, index=2)
             formed_data['deposit'] = raw_data[deposit_column]\
                                      .fillna('0.00')\
                                      .str.replace(',', '')\
                                      .apply(Decimal)
-            withdraw_column = st.selectbox('Withdraw Column', options=raw_data.columns)
+            withdraw_column = st.selectbox('Withdraw Column', options=raw_data.columns, index=3)
             formed_data['withdraw'] = raw_data[withdraw_column]\
                                      .fillna('0.00')\
                                      .str.replace(',', '')\
                                      .apply(Decimal) * Decimal('-1.00')
             formed_data['amount'] = formed_data['deposit'] + formed_data['withdraw']
         else:
-            amount_column = st.selectbox('Amount Column', options=raw_data.columns)
-            formed_data['amount'] = raw_data[amount_column].str.replace(',', '').apply(Decimal) * Decimal('-1.00')
+            amount_column = st.selectbox('Amount Column', options=raw_data.columns, index=2)
+            formed_data['amount'] = raw_data[amount_column]\
+                                    .str.replace(',', '')\
+                                    .str.replace('$', '')\
+                                    .apply(Decimal) * Decimal('-1.00')
+
+        if st.checkbox('Back Fill amounts'):
+            formed_data['amount'] = formed_data['amount'].fillna(method='backfill')
         
         formed_data = formed_data.loc[~formed_data[date_column].isna(), :]
         formed_data['date'] = fix_dates(

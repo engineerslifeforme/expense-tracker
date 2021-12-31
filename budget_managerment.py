@@ -3,7 +3,7 @@
 from decimal import Decimal
 
 import streamlit as stl
-from db_access import DbAccess
+from newdb_access import DbAccess
 
 def display_budget_configuration(st: stl, db_data: DbAccess):
     name = st.text_input('Budget Name')
@@ -29,16 +29,16 @@ def display_budget_configuration(st: stl, db_data: DbAccess):
         st.write(f'Added new Budget {name} id: {new_id}')
     with st.expander('Current Budgets'):
         st.markdown('### Current Budgets')
-        st.write(db_data.budgets)
+        st.write(db_data.get_budgets())
 
     left, right = st.columns(2)
     category_name = left.text_input('Category Name')
-    budget_name = right.selectbox('Assigned Budget', options=db_data.budgets['name'])
+    budget_name = right.selectbox('Assigned Budget', options=db_data.get_budgets()['name'])
     if st.button('Add Category!'):
         new_id = db_data.add_category(category_name, budget_name)
         st.write(f'Added new Category {category_name} id: {new_id}!')        
     with st.expander('Current Categories'):
         st.markdown('### Current Categories')
-        categories = db_data.categories
-        categories['budget'] = categories['budget_id'].map(db_data.budget_map)
+        categories = db_data.get_categories()
+        #categories['budget'] = categories['budget_id'].map(db_data.budget_map)
         st.write(categories)

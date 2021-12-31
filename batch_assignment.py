@@ -11,7 +11,8 @@ import view_translation as vt
 
 def batch_assignment(
     st: stl, 
-    db: DbAccess, 
+    db: DbAccess,
+    default_method: str, 
     entries: list):
 
     categories = db.get_categories()
@@ -19,7 +20,6 @@ def batch_assignment(
     methods = db.get_methods()
 
     batch_quantity = st.number_input('Batch Quantity', value=25, step=1)
-    default_method = st.selectbox('Default Method', options=methods['name'])
     with st.form('Assignments'):
         i = 0
         add_list = []

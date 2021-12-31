@@ -10,6 +10,7 @@ from new_integrity_check import integrity_check
 from new_search import view_search
 from ml_management import ml_management
 from delete_tab import display_delete
+from budget_managerment import display_budget_configuration
 
 db = DbAccess('example.db')
 
@@ -25,6 +26,7 @@ task = st.sidebar.radio('Tasks', options=[
     'Search',
     'ML Management',
     'Delete',
+    'Budget Management',
 ])
 
 if task == 'Statement Assignment':
@@ -41,5 +43,7 @@ elif task == 'ML Management':
     ml_management(st, db)
 elif task == 'Delete':
     display_delete(st, db)
+elif task == 'Budget Management':
+    display_budget_configuration(st, db)
 else:
     st.markdown(f'Unknown task {task}')

@@ -155,6 +155,16 @@ class DbAccess(object):
         data['balance'] = data['balance'].apply(Decimal)
         return data
 
+    def get_budgets(self) -> pd.DataFrame:
+        data = pd.read_sql_query(
+            'SELECT * FROM budget',
+            self.con,
+            dtype={'increment': str, 'balance': str}
+        )
+        data['balance'] = data['balance'].apply(Decimal)
+        data['increment'] = data['increment'].apply(Decimal)
+        return data
+
     def add_taction(self, date, transfer: bool, account_id: int, method_id: int, description: str, receipt: bool, valid: bool, not_real: bool):
         fields = [
             'id',
@@ -223,11 +233,15 @@ class DbAccess(object):
     def category_translate(self, method, request: str):
         return self.translate(method, 'category', request)
 
+    def budget_translate(self, method, request: str):
+        return self.translate(method, 'budget', request)
+
     def translate(self, match: str, name_type: str, request: str) -> int:
         type_map = {
             'account': self.get_accounts,
             'method': self.get_methods,
             'category': self.get_categories,
+            'budget': self.get_budgets,
         }
         func = type_map[name_type]
         data = func()
@@ -413,4 +427,55 @@ class DbAccess(object):
         self._update(
             'taction', 'valid', 0, transaction_id
         )
+
+    def add_budget(self, name: str, balance: Decimal, purpose: str, update_frequency: str, update_amount: Decimal) -> int:
+        new_id = self.get_budgets()['id'].max() + 1
+        self._insert(
+            'budget',
+            [
+                'id',
+                'name',
+                'balance',
+                'visibility',
+                'frequency',
+                'increment',
+                'valid',
+                'purpose',
+            ],
+            [
+                new_id,
+                name,
+                balance,
+                1,
+                update_frequency,
+                update_amount,
+                1,
+                purpose,
+            ]
+        )
+        return new_id
+
+    def add_category(self, name: str, budget_name: str):
+        new_id = self.get_categories()['id'].max() + 1
+        budget_id = self.budget_translate(budget_name, 'id')
+        self._insert(
+            'category',
+            [
+                'id',
+                'name',
+                'budget_id',
+                'valid',
+                'no_kid_retire',
+                'kid_retire',
+            ],
+            [
+                new_id,
+                name,
+                budget_id,
+                1,
+                1,
+                1,
+            ]
+        )
+        return new_id
 
