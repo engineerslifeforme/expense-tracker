@@ -1,6 +1,7 @@
 """ Statement Entry """
 
 from decimal import Decimal
+from io import StringIO
 
 import streamlit as stl
 import pandas as pd
@@ -32,8 +33,22 @@ def view_statement_entry(st: stl, db: DbAccess):
                 month_to_year_map[str(month_to_map)] = year_to_map
         
         st.markdown('### Raw Data')
+        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        if st.checkbox('Attempt comma realignment, 3 columns'):
+            lines = stringio.readlines()
+            new_lines = []
+            for line in lines:
+                clean_line = line.replace('"', '')
+                parts = clean_line.split(',')
+                if '$' in parts[-2]:
+                    amount_str = parts[-2] + parts[-1]
+                else:
+                    amount_str = parts[-1]
+                new_lines.append(','.join([parts[0], parts[1], amount_str]))
+            stringio = StringIO('\n'.join(new_lines))
+            #import pdb;pdb.set_trace()
         raw_data = pd.read_csv(
-            uploaded_file,
+            stringio,
             header=None,
             dtype=str,
             index_col=False
