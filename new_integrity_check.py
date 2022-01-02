@@ -60,3 +60,4 @@ def integrity_check(st: stl, db: DbAccess):
             if st.button('Remove Assignemnt'):
                 db.cursor.execute(f'UPDATE statement_transactions SET taction_id=NULL WHERE id={statement_id}')
                 db.con.commit()
+                st.markdown(f'Assignment on {statement_id} removed!')

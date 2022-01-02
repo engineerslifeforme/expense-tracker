@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 import shutil
 import sys
+import filecmp
 
 action = sys.argv[1]
 
@@ -36,9 +37,12 @@ elif action == 'download':
     print(f'Copying {server_file}')
     shutil.copyfile(server_file, LOCAL_FILE)
     for asset_file in ASSET_LIST:
-        shutil.copyfile(
-            ASSETS / asset_file,
-            asset_file
-        )
+        server_asset = ASSETS / asset_file
+        if not filecmp.cmp(server_asset, asset_file):
+            print(f'Copying {asset_file}')
+            shutil.copyfile(
+                server_asset,
+                asset_file
+            )
 else:
     print(f'Unknown command {action}')
