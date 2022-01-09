@@ -45,7 +45,7 @@ def auto_assign(st: stl, db: DbAccess, entries: list):
                 before_date = entry_date,
                 account_id = entry['account_id'],
             )
-            if len(potential_matches) == 1:
+            if len(precise_potential_matches) == 1:
                 attempt_assignment(st, db, precise_potential_matches, description, entry)
             else:
                 st.markdown(f'Multiple matching transactions for {description}')
