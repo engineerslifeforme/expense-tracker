@@ -47,9 +47,13 @@ def view_statement_entry(st: stl, db: DbAccess):
                 new_lines.append(','.join([parts[0], parts[1], amount_str]))
             stringio = StringIO('\n'.join(new_lines))
             #import pdb;pdb.set_trace()
+        if st.checkbox('Use CSV Headers?'):
+            header = 0
+        else:
+            header = None
         raw_data = pd.read_csv(
             stringio,
-            header=None,
+            header=header,
             dtype=str,
             index_col=False
         )
@@ -77,17 +81,22 @@ def view_statement_entry(st: stl, db: DbAccess):
             formed_data['amount'] = raw_data[amount_column]\
                                     .str.replace(',', '')\
                                     .str.replace('$', '')\
-                                    .apply(Decimal) * Decimal('-1.00')
+                                    .apply(Decimal)
+        if st.checkbox('Flip Sign?', value=True):
+            formed_data['amount'] = formed_data['amount'] * Decimal('-1.00')
 
         if st.checkbox('Back Fill amounts'):
             formed_data['amount'] = formed_data['amount'].fillna(method='backfill')
         
         formed_data = formed_data.loc[~formed_data[date_column].isna(), :]
-        formed_data['date'] = fix_dates(
-            raw_data[date_column],
-            year,
-            month_to_year_map,
-        )
+        if st.checkbox('Manipulate Date?', value=True):
+            formed_data['date'] = fix_dates(
+                raw_data[date_column],
+                year,
+                month_to_year_map,
+            )
+        else:
+            formed_data['date'] = pd.to_datetime(raw_data[date_column])
         formed_data['description'] = raw_data[description_column]
 
         for column in formed_data.columns:
