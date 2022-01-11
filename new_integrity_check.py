@@ -5,8 +5,15 @@ import streamlit as stl
 from newdb_access import DbAccess
 import view_translation as vt
 
+def _delete_entry(db, candidate):
+    sql = f'DELETE FROM statement_transactions WHERE id={candidate}'
+    stl.markdown(sql)
+    db.cursor.execute(sql)
+    db.con.commit()
+
 def integrity_check(st: stl, db: DbAccess):
-    statement_transactions = db.get_statement_transactions().dropna(subset=['taction_id'])
+    statement_transactions_all = db.get_statement_transactions()
+    statement_transactions = statement_transactions_all.dropna(subset=['taction_id'])
     duplicates = statement_transactions[statement_transactions['taction_id'].duplicated()]
     tactions_with_duplicate_assignment = duplicates['taction_id']
     if len(tactions_with_duplicate_assignment) == 0:
@@ -31,10 +38,7 @@ def integrity_check(st: stl, db: DbAccess):
                         delete_list.append(delete_candidate)
                 if st.form_submit_button('Delete All'):
                     for candidate in delete_list:
-                        sql = f'DELETE FROM statement_transactions WHERE id={candidate}'
-                        st.markdown(sql)
-                        db.cursor.execute(sql)
-                        db.con.commit()
+                        _delete_entry(db, candidate)
         
         if st.checkbox('Attempt Reassign?'):
             taction_id = st.selectbox(
@@ -61,3 +65,11 @@ def integrity_check(st: stl, db: DbAccess):
                 db.cursor.execute(f'UPDATE statement_transactions SET taction_id=NULL WHERE id={statement_id}')
                 db.con.commit()
                 st.markdown(f'Assignment on {statement_id} removed!')
+
+    if st.checkbox('Delete Statement Entry?'):
+        statement_id = st.number_input('Statement ID', step=1)
+        if statement_id != 0:
+            st.write(statement_transactions_all[statement_transactions_all['id'] == statement_id])
+        if st.button('Delete Statement?'):
+            _delete_entry(db, statement_id)
+            st.markdown(f'Deleted {statement_id}')
