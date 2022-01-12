@@ -69,12 +69,16 @@ def view_statement_entry(st: stl, db: DbAccess):
             formed_data['deposit'] = raw_data[deposit_column]\
                                      .fillna('0.00')\
                                      .str.replace(',', '')\
+                                     .str.replace('$', '')\
                                      .apply(Decimal)
             withdraw_column = st.selectbox('Withdraw Column', options=raw_data.columns, index=3)
             formed_data['withdraw'] = raw_data[withdraw_column]\
                                      .fillna('0.00')\
                                      .str.replace(',', '')\
-                                     .apply(Decimal) * Decimal('-1.00')
+                                     .str.replace('$', '')\
+                                     .apply(Decimal)
+            if st.checkbox('Flip Sign Withdraw?'):
+                formed_data['withdraw'] = formed_data['withdraw'] * Decimal('-1.00')
             formed_data['amount'] = formed_data['deposit'] + formed_data['withdraw']
         else:
             amount_column = st.selectbox('Amount Column', options=raw_data.columns, index=2)
