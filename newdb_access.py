@@ -149,18 +149,32 @@ class DbAccess(object):
             self.con
         )
 
-    def get_accounts(self) -> pd.DataFrame:
+    def get_accounts(self, account_id: int = None, only_valid: bool = True, only_visible: bool = True) -> pd.DataFrame:
+        sql = 'SELECT * FROM account'
+        where_list = []
+        if only_valid:
+            where_list.append('valid = 1')
+        if only_visible:
+            where_list.append('visibility = 1')
+        if account_id is not None:
+            where_list.append(f'id = {account_id}')
+        sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
-            'SELECT * FROM account',
+            sql,
             self.con,
             dtype={'balance': str},
         )
         data['balance'] = data['balance'].apply(Decimal)
         return data
 
-    def get_budgets(self) -> pd.DataFrame:
+    def get_budgets(self, budget_id: int = None) -> pd.DataFrame:
+        sql = 'SELECT * FROM budget'
+        where_list = []
+        if budget_id is not None:
+            where_list.append(f'id = {budget_id}')
+        sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
-            'SELECT * FROM budget',
+            sql,
             self.con,
             dtype={'increment': str, 'balance': str}
         )

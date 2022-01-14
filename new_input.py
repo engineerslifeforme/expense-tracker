@@ -9,6 +9,17 @@ import view_translation as vt
 
 ZERO = Decimal('0.00')
 
+def show_account_status(st: stl, db: DbAccess, account_name: str):
+    balance = db.get_accounts(account_id=db.account_translate(account_name, 'id'))['balance'].values[0]
+    st.markdown(f'{account_name} has a balance of {balance}')
+
+def show_budget_status(st: stl, db: DbAccess, category_name: str):
+    category_id = db.category_translate(category_name, 'id')
+    budget_id = db.get_budget_from_category(category_id)
+    budget_name = db.budget_translate(budget_id, 'name')
+    balance = db.get_budgets(budget_id=budget_id)['balance'].values[0]
+    st.markdown(f'Category {category_name} is budget {budget_name} with balance {balance}')
+
 def show_input(st: stl, db: DbAccess):
     st.markdown('## Expense Input')
     
@@ -40,6 +51,9 @@ def show_input(st: stl, db: DbAccess):
 
         if st.button('Add Transaction'):
             st.markdown('Adding Transaction...')
+            show_account_status(st, db, account)
+            for sub in sub_list:
+                show_budget_status(st, db, sub[1])
             db.add_transaction(
                 date,
                 account,
@@ -49,6 +63,10 @@ def show_input(st: stl, db: DbAccess):
                 multiplier*amount,
                 sub_list
             )
+            st.markdown('After transaction:')
+            show_account_status(st, db, account)
+            for sub in sub_list:
+                show_budget_status(st, db, sub[1])
 
     elif input_type == 'Transfer':
         left, middle, right = st.columns(3)
@@ -63,6 +81,8 @@ def show_input(st: stl, db: DbAccess):
         )
         if st.button('Add Transfer'):
             st.markdown('Adding Transfer...')
+            show_account_status(st, db, withdraw_account)
+            show_account_status(st, db, deposit_account)
             db.add_transfer(
                 date,
                 withdraw_account,
@@ -71,6 +91,9 @@ def show_input(st: stl, db: DbAccess):
                 reciept,
                 amount,
             )
+            st.markdown('After transactions (withdraw then deposit):')
+            show_account_status(st, db, withdraw_account)
+            show_account_status(st, db, deposit_account)
             
 
     if amount != ZERO:

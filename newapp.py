@@ -11,6 +11,7 @@ from new_search import view_search
 from ml_management import ml_management
 from delete_tab import display_delete
 from budget_managerment import display_budget_configuration
+from balances import view_balances
 
 db = DbAccess('example.db')
 
@@ -19,7 +20,8 @@ st.set_page_config(layout="wide")
 """# Expense Tracker"""
 
 task = st.sidebar.radio('Tasks', options=[
-    'Input', 
+    'Input',
+    'Balances', 
     'Statement Assignment',
     'Statement Entry',
     'Integrity Check',
@@ -45,5 +47,7 @@ elif task == 'Delete':
     display_delete(st, db)
 elif task == 'Budget Management':
     display_budget_configuration(st, db)
+elif task == 'Balances':
+    view_balances(db)
 else:
     st.markdown(f'Unknown task {task}')

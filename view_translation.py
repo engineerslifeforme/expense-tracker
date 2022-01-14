@@ -30,3 +30,7 @@ def translate_transactions(data: pd.DataFrame, db: DbAccess = None) -> pd.DataFr
         .format(precision=2, subset=['amount'])\
         .hide_index()
     return data
+
+def translate_accounts(data: pd.DataFrame) -> pd.DataFrame:
+    data['balance'] = data['balance'].astype(float)
+    return data

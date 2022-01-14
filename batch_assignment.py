@@ -19,7 +19,16 @@ def batch_assignment(
     accounts = db.get_accounts()
     methods = db.get_methods()
 
-    batch_quantity = st.number_input('Batch Quantity', value=25, step=1)
+    batch_type = st.radio('Batch Type', options=['group', 'single'])
+
+    if batch_type == 'single':
+        single_index = st.number_input('Single Index', step=1)
+        batch_quantity = 1
+    elif batch_type == 'group':
+        batch_quantity = st.number_input('Batch Quantity', value=25, step=1)
+    else:
+        st.error(f'Unknown batch type: {batch_type}')
+        st.stop()
     with st.form('Assignments'):
         i = 0
         add_list = []
@@ -27,7 +36,10 @@ def batch_assignment(
         assign_list = []
 
         while i < min([batch_quantity, len(entries)]):
-            entry = entries[i]
+            if batch_type == 'group':
+                entry = entries[i]
+            elif batch_type == 'single':
+                entry = entries[single_index]
             entry_id = entry['id']
 
             st.markdown(f'### Entry #{i}')

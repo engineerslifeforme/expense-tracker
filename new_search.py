@@ -19,12 +19,21 @@ def view_search(st: stl, db: DbAccess):
         'Categories',
         options=db.get_categories()['name']
     )
+    accounts = ['None'] + list(db.get_accounts()['name'])
+    account_name = st.selectbox('Account', options=accounts)
+    if account_name == 'None':
+        account_id = None
+    else:
+        account_id = db.account_translate(account_name, 'id')
     taction_id = st.number_input('Taction ID', step=1)
     if taction_id == 0:
         taction_id = None
 
     if st.checkbox('Transactions'):
-        transactions = db.get_transactions(amount=amount)
+        transactions = db.get_transactions(
+            amount=amount,
+            account_id=account_id,
+        )
         st.markdown(str(len(transactions)))
 
         if len(categories) > 0:
