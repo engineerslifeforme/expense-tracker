@@ -35,6 +35,8 @@ def batch_assignment(
         defer_list = []
         assign_list = []
 
+        decisions_made = st.checkbox('Decisions Made?')
+
         while i < min([batch_quantity, len(entries)]):
             if batch_type == 'group':
                 entry = entries[i]
@@ -47,13 +49,17 @@ def batch_assignment(
             date = left.date_input(f'Date #{i}', value=entry['date'])
             amount = Decimal(str(right.number_input(f'Amount #{i}', value=float(entry['amount']), step=0.01)))
             left, middle, right = st.columns(3)
-            category = left.selectbox(
-                f'Category #{i}', 
-                options=categories['name'],
-                index=list(categories['name']).index(db.category_translate(
+            if decisions_made:
+                default_category_index = 0
+            else:
+                default_category_index = list(categories['name']).index(db.category_translate(
                     predict_category(entry),
                     'name',
                 ))
+            category = left.selectbox(
+                f'Category #{i}', 
+                options=categories['name'],
+                index=default_category_index,
             )
             method = middle.selectbox(
                 f'Method #{i}', 
