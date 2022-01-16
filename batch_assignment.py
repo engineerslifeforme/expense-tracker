@@ -49,13 +49,10 @@ def batch_assignment(
             date = left.date_input(f'Date #{i}', value=entry['date'])
             amount = Decimal(str(right.number_input(f'Amount #{i}', value=float(entry['amount']), step=0.01)))
             left, middle, right = st.columns(3)
-            if decisions_made:
-                default_category_index = 0
-            else:
-                default_category_index = list(categories['name']).index(db.category_translate(
-                    predict_category(entry),
-                    'name',
-                ))
+            default_category_index = list(categories['name']).index(db.category_translate(
+                predict_category(entry),
+                'name',
+            ))
             category = left.selectbox(
                 f'Category #{i}', 
                 options=categories['name'],
@@ -103,8 +100,9 @@ def batch_assignment(
             else:
                 st.markdown(f'Unknown action: {action}')
                 
-            st.markdown('#### Amount Matches')
-            st.write(vt.translate_transactions(amount_matches.copy(deep=True)))
+            if not decisions_made:
+                st.markdown('#### Amount Matches')
+                st.write(vt.translate_transactions(amount_matches.copy(deep=True)))
             i += 1
         if st.form_submit_button('Process'):
             for item in defer_list:

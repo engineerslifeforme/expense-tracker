@@ -1,7 +1,8 @@
 """ Delete tab """
 
 import streamlit as stl
-from db_access import DbAccess
+from newdb_access import DbAccess
+import view_translation as vt
 
 def display_delete(st: stl, data_db: DbAccess):
     transaction_id = st.number_input(
@@ -10,11 +11,11 @@ def display_delete(st: stl, data_db: DbAccess):
         step=1,
     )
     if transaction_id != 0:
-        matches = data_db.get_tactions(id_request=transaction_id)
+        matches = data_db.get_transactions(taction_id_request=transaction_id)
         if len(matches) == 0:
             st.write('Invalid transaction ID!')
         else:
-            st.write(matches)
+            st.write(vt.translate_transactions(matches.copy(deep=True), db=data_db))
     else:
         st.write('Please enter a transaction ID!')
     delete = st.button('Delete!')

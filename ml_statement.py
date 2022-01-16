@@ -1,5 +1,8 @@
 """ ML statement capes """
 
+import functools
+from functools import lru_cache
+
 import pandas as pd
 from joblib import dump, load
 from sklearn.preprocessing import StandardScaler
@@ -12,6 +15,22 @@ SVC_MODEL = load('statement_to_category_model.joblib')
 SCALER = load('statement_scaler.joblib')
 WORD_LIST = load('word_list.joblib')
 
+def hash_dict(func):
+    """Transform mutable dictionnary
+    Into immutable
+    Useful to be compatible with cache
+    """
+    class HDict(dict):
+        def __hash__(self):
+            return hash(frozenset(self.items()))
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        args = tuple([HDict(arg) if isinstance(arg, dict) else arg for arg in args])
+        kwargs = {k: HDict(v) if isinstance(v, dict) else v for k, v in kwargs.items()}
+        return func(*args, **kwargs)
+    return wrapped
+
 def add_word_data(statement_df: pd.DataFrame) -> pd.DataFrame:
     for word in WORD_LIST:
         try:
@@ -20,6 +39,8 @@ def add_word_data(statement_df: pd.DataFrame) -> pd.DataFrame:
             print(f'Could not do {word}')
     return statement_df
 
+@hash_dict
+@lru_cache(maxsize=50)
 def predict_category(statement_entry: dict) -> int:
     statement_df = pd.DataFrame([statement_entry])
     statement_df = add_word_data(statement_df)

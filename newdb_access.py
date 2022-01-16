@@ -56,7 +56,8 @@ class DbAccess(object):
         before_date: np.datetime64 = None,
         account_id: int = None,
         absolute_value: bool = False,
-        only_valid: bool = True):
+        only_valid: bool = True,
+        taction_id_request: int = None):
         
         # amount is the total not the sub
         subs = self.get_subtotals(
@@ -67,6 +68,7 @@ class DbAccess(object):
             before_date=before_date,
             account_id=account_id,
             only_valid=only_valid,
+            id_request=taction_id_request,
         ).set_index('id')
         sub_totals = subs[['amount', 'taction_id']].groupby('taction_id').sum().reset_index(drop=False)
         if amount is not None:
@@ -321,7 +323,7 @@ class DbAccess(object):
         )
 
     def get_next_sub_id(self):
-        return self.get_subtotals()['id'].max() + 1
+        return self.get_subtotals(only_valid=False)['id'].max() + 1
 
     def add_sub(self, amount: Decimal, category_id: int, taction_id: int, valid: bool, not_real: bool):
         fields = [
@@ -354,7 +356,7 @@ class DbAccess(object):
         return new_id
 
     def get_next_taction_id(self):
-        return self.get_tactions()['id'].max() + 1
+        return self.get_tactions(only_valid=False)['id'].max() + 1
 
     def get_next_statement_transaction_id(self):
         return self.get_statement_transactions()['id'].max() + 1

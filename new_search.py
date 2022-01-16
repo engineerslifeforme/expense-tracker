@@ -7,6 +7,8 @@ import streamlit as stl
 from newdb_access import DbAccess
 import view_translation as vt
 
+
+
 def view_search(st: stl, db: DbAccess):
     st.markdown('## Search')
     amount = Decimal(str(st.number_input(
@@ -28,18 +30,28 @@ def view_search(st: stl, db: DbAccess):
     taction_id = st.number_input('Taction ID', step=1)
     if taction_id == 0:
         taction_id = None
+    
+    start_date = None
+    end_date = None    
+    if st.checkbox('Apply Date Filter'):
+        left, right = st.columns(2)
+        start_date = left.date_input('Start Date')
+        end_date = right.date_input('End Date')    
 
     if st.checkbox('Transactions'):
         transactions = db.get_transactions(
             amount=amount,
             account_id=account_id,
-        )
-        st.markdown(str(len(transactions)))
+            after_date=start_date,
+            before_date=end_date,
+        )        
 
         if len(categories) > 0:
             first_category_id = db.category_translate(categories[0], 'id')
             subs = db.get_subtotals(category_id=first_category_id)
             transactions = transactions.loc[transactions['taction_id'].isin(subs['taction_id']), :]
+        
+        st.markdown(str(len(transactions)))
         st.write(vt.translate_transactions(transactions, db=db))
 
         #view_data = vt.translate_transactions(transactions)
