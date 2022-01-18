@@ -57,7 +57,8 @@ class DbAccess(object):
         account_id: int = None,
         absolute_value: bool = False,
         only_valid: bool = True,
-        taction_id_request: int = None):
+        taction_id_request: int = None,
+        include_statement_links: bool = False):
         
         # amount is the total not the sub
         subs = self.get_subtotals(
@@ -77,6 +78,13 @@ class DbAccess(object):
             else:
                 sub_totals = sub_totals.loc[sub_totals['amount']==amount, :]
         transactions = sub_totals.join(tactions, on='taction_id', how='inner', lsuffix='_sub')
+        if include_statement_links:
+            statements = self.get_statement_transactions(
+                amount=amount,
+                account_id=account_id,
+                request_taction_id=taction_id_request,
+            ).set_index('taction_id').rename({'id': 'statement_id'}, axis='columns')
+            transactions = transactions.join(statements[['statement_id']], on='taction_id', how='left', rsuffix='_statement')
         return transactions
 
     def get_subtotals(self, 

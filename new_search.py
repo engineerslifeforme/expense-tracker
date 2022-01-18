@@ -44,6 +44,7 @@ def view_search(st: stl, db: DbAccess):
             account_id=account_id,
             after_date=start_date,
             before_date=end_date,
+            include_statement_links=True,
         )        
 
         if len(categories) > 0:
@@ -51,8 +52,11 @@ def view_search(st: stl, db: DbAccess):
             subs = db.get_subtotals(category_id=first_category_id)
             transactions = transactions.loc[transactions['taction_id'].isin(subs['taction_id']), :]
         
+        columns = transactions.columns
+        displayed_columns = st.multiselect('Displayed Columns', options=columns, default=list(columns))
         st.markdown(str(len(transactions)))
-        st.write(vt.translate_transactions(transactions, db=db))
+        view_frame = vt.translate_transactions(transactions[displayed_columns], db=db)
+        st.write(view_frame)
 
         #view_data = vt.translate_transactions(transactions)
     if st.checkbox('Statements'):
