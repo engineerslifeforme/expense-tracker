@@ -26,4 +26,5 @@ def view_balances(db: DbAccess):
     transactions['balance'] = transactions['amount'].cumsum()
     account_balance = account_data.loc[account_data['id'] == account_id, 'balance'].values[0]
     transactions['balance'] = account_balance - transactions['balance']
+    transactions['balance'] = transactions['balance'].shift(periods=1).fillna(account_balance)
     st.write(vt.translate_transactions(transactions))
