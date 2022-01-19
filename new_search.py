@@ -51,6 +51,9 @@ def view_search(st: stl, db: DbAccess):
             first_category_id = db.category_translate(categories[0], 'id')
             subs = db.get_subtotals(category_id=first_category_id)
             transactions = transactions.loc[transactions['taction_id'].isin(subs['taction_id']), :]
+
+        if st.checkbox('Only unmapped statements'):
+            transactions = transactions.loc[transactions['statement_id'].isna(), :]
         
         columns = transactions.columns
         displayed_columns = st.multiselect('Displayed Columns', options=columns, default=list(columns))

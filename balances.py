@@ -1,5 +1,7 @@
 """ Balance Page """
 
+from decimal import Decimal
+
 import streamlit as st
 
 from newdb_access import DbAccess
@@ -18,11 +20,17 @@ def view_balances(db: DbAccess):
     if account_name == 'None':
         st.markdown('Select account name for detailed log')
         st.stop()
+
+    reverse_balance = Decimal(str(st.number_input('Reverse Balance Start', step=0.01)))
     
     account_id = db.account_translate(account_name, 'id')
     transactions = db.get_transactions(
         account_id=account_id,
-    ).sort_values(by='date', ascending=False)
+    )
+    transactions = transactions.sort_values(by='date')
+    transactions['rbalance'] = transactions['amount'].cumsum()
+    transactions['rbalance'] = transactions['rbalance'] + reverse_balance
+    transactions = transactions.sort_values(by='date', ascending=False)
     transactions['balance'] = transactions['amount'].cumsum()
     account_balance = account_data.loc[account_data['id'] == account_id, 'balance'].values[0]
     transactions['balance'] = account_balance - transactions['balance']

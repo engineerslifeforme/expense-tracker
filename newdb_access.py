@@ -24,6 +24,8 @@ class DbAccess(object):
         include_deferred: bool = True,
         amount: Decimal = None,
         account_id: int = None,
+        before_date: np.datetime64 = None,
+        after_date: np.datetime64 = None,
         request_taction_id: int = None) -> pd.DataFrame:
         
         sql = 'SELECT * FROM statement_transactions'
@@ -39,6 +41,10 @@ class DbAccess(object):
             where_list.append(f'account_id = {account_id}')
         if request_taction_id is not None:
             where_list.append(f'taction_id = {request_taction_id}')
+        if after_date is not None:
+            where_list.append(f"date >= date('{after_date}')")
+        if before_date is not None:
+            where_list.append(f"date <= date('{before_date}')")
         sql += generate_where_statement(where_list)
         
         data = pd.read_sql_query(
@@ -84,7 +90,7 @@ class DbAccess(object):
                 account_id=account_id,
                 request_taction_id=taction_id_request,
             ).set_index('taction_id').rename({'id': 'statement_id'}, axis='columns')
-            transactions = transactions.join(statements[['statement_id']], on='taction_id', how='left', rsuffix='_statement')
+            transactions = transactions.join(statements[['statement_id', 'date']], on='taction_id', how='left', rsuffix='_statement')
         return transactions
 
     def get_subtotals(self, 
