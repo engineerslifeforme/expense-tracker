@@ -39,12 +39,14 @@ def view_search(st: stl, db: DbAccess):
         end_date = right.date_input('End Date')    
 
     if st.checkbox('Transactions'):
+        only_valid = st.checkbox('Only Valid?', value=True)
         transactions = db.get_transactions(
             amount=amount,
             account_id=account_id,
             after_date=start_date,
             before_date=end_date,
             include_statement_links=True,
+            only_valid=only_valid,
         )        
 
         if len(categories) > 0:
@@ -63,7 +65,11 @@ def view_search(st: stl, db: DbAccess):
 
         #view_data = vt.translate_transactions(transactions)
     if st.checkbox('Statements'):
-        statements = db.get_statement_transactions(amount=amount, request_taction_id=taction_id)
+        statements = db.get_statement_transactions(
+            amount=amount, 
+            account_id=account_id,
+            request_taction_id=taction_id,
+        )
         st.write(vt.translate_statement_transactions(statements))
         
 

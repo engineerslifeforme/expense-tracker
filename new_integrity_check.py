@@ -76,6 +76,7 @@ def integrity_check(st: stl, db: DbAccess):
 
     if st.checkbox('Prune Unassigned?'):
         account_names = ['None'] + list(db.get_accounts()['name'])
+        earliest_date = st.date_input('No Earlier Than')
         account_name = st.selectbox('Account Name', options=account_names)
         if account_name == 'None':
             st.markdown('Select an Account!')
@@ -83,20 +84,24 @@ def integrity_check(st: stl, db: DbAccess):
         account_id = db.account_translate(account_name, 'id')
         transactions = db.get_transactions(
             account_id=account_id,
+            after_date=earliest_date,
             include_statement_links=True,
         )
         unassigned_transactions = transactions.loc[transactions['statement_id'].isna(), :]
-        
+        st.markdown(f'{len(unassigned_transactions)} Unassigned Transactions')
         ids_to_delete = []
         with st.form('Delete Unassigned'):            
             i = -1
             while i > -25:
-                unique_id = unassigned_transactions['taction_id'].values[i]
-                label = f'Delete {unique_id}'
-                st.markdown(label)
-                st.write(vt.translate_transactions(unassigned_transactions[unassigned_transactions['taction_id'] == unique_id]))
-                if st.checkbox(label):
-                    ids_to_delete.append(unique_id)                    
+                try:
+                    unique_id = unassigned_transactions['taction_id'].values[i]
+                    label = f'Delete {unique_id}'
+                    st.markdown(label)
+                    st.write(vt.translate_transactions(unassigned_transactions[unassigned_transactions['taction_id'] == unique_id]))
+                    if st.checkbox(label):
+                        ids_to_delete.append(unique_id)                    
+                except IndexError:
+                    i = -25
                 i -= 1
             if st.form_submit_button('Delete Selected'):
                 for unique_id in ids_to_delete:
