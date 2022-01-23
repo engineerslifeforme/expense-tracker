@@ -13,6 +13,7 @@ from delete_tab import display_delete
 from budget_managerment import display_budget_configuration
 from balances import view_balances
 from period_verification import view_period_verification
+from visualize import view_visualize_tab
 
 db = DbAccess('example.db')
 
@@ -31,6 +32,7 @@ task = st.sidebar.radio('Tasks', options=[
     'Delete',
     'Budget Management',
     'Period Verification',
+    'Visualization',
 ])
 
 if task == 'Statement Assignment':
@@ -53,5 +55,7 @@ elif task == 'Balances':
     view_balances(db)
 elif task == 'Period Verification':
     view_period_verification(db)
+elif task == 'Visualization':
+    view_visualize_tab(db)
 else:
     st.markdown(f'Unknown task {task}')

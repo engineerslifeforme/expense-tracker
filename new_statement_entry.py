@@ -40,7 +40,7 @@ def view_statement_entry(st: stl, db: DbAccess):
             for line in lines:
                 clean_line = line.replace('"', '')
                 parts = clean_line.split(',')
-                if '$' in parts[-2]:
+                if '$' in parts[-2] or '-' in parts[-2] or parts[-2].isnumeric():
                     amount_str = parts[-2] + parts[-1]
                 else:
                     amount_str = parts[-1]
