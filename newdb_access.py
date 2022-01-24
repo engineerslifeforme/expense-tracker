@@ -98,7 +98,8 @@ class DbAccess(object):
         absolute_value: bool = False,
         category_id: int = None,
         taction_id: int = None,
-        only_valid: bool = True):
+        only_valid: bool = True,
+        only_real: bool = True):
         sql = 'SELECT * FROM sub'
 
         where_list = []
@@ -108,18 +109,21 @@ class DbAccess(object):
             else:
                 where_list.append(f'amount = {amount}')
         if only_valid:
-            where_list.append(f'valid = 1')
+            where_list.append('valid = 1')
+        if only_real:
+            where_list.append('not_real = 0')
         if taction_id is not None:
             where_list.append(f'taction_id = {taction_id}')
         if category_id is not None:
             where_list.append(f'category_id = {category_id}')
         sql += generate_where_statement(where_list)
-        print(sql)
+        #print(sql)
 
         data = pd.read_sql_query(
             sql,
             self.con,
             dtype={'amount': str},
+            parse_dates=['date'],
         )
         data['amount'] = data['amount'].apply(Decimal)
         return data
@@ -309,6 +313,7 @@ class DbAccess(object):
                 new_id,
                 True,
                 False,
+                date,
             )
             self.update_budget(sub_amount, category_id)
         return new_id
@@ -339,7 +344,7 @@ class DbAccess(object):
     def get_next_sub_id(self):
         return self.get_subtotals(only_valid=False)['id'].max() + 1
 
-    def add_sub(self, amount: Decimal, category_id: int, taction_id: int, valid: bool, not_real: bool):
+    def add_sub(self, amount: Decimal, category_id: int, taction_id: int, valid: bool, not_real: bool, date):
         fields = [
             'id',
             'amount',
@@ -347,6 +352,7 @@ class DbAccess(object):
             'taction_id',
             'valid',
             'not_real',
+            'date',
         ]
         new_id = self.get_next_sub_id()
 
@@ -366,6 +372,7 @@ class DbAccess(object):
             taction_id,
             valid_int,
             not_real_int,
+            date,
         ])
         return new_id
 

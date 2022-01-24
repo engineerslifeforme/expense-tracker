@@ -1,6 +1,7 @@
 """ Check database integrity """
 
 import streamlit as stl
+import stqdm
 
 from newdb_access import DbAccess
 import view_translation as vt
@@ -12,6 +13,22 @@ def _delete_entry(db, candidate):
     db.con.commit()
 
 def integrity_check(st: stl, db: DbAccess):
+    statement_integrity(st, db)
+    if st.checkbox('Check sub integrity?'):
+        sub_integrity(st, db)
+
+def sub_integrity(st: stl, db: DbAccess):
+    subs = db.get_subtotals(only_valid=False)
+    tactions = db.get_tactions(only_valid=False)
+
+    valid_tactions = tactions.loc[tactions['valid'], :].set_index('id')
+    valid_subs = subs.loc[subs['valid'], :]
+
+    mapped_subs = valid_subs.join(valid_tactions[['date']], on='taction_id', how='outer')
+    if not any(mapped_subs['date'].isna()) and not any(mapped_subs['category_id'].isna()):
+        st.success('All valid subs map to valid tactions and vice versa')
+
+def statement_integrity(st: stl, db: DbAccess):
     statement_transactions_all = db.get_statement_transactions()
     statement_transactions = statement_transactions_all.dropna(subset=['taction_id'])
     duplicates = statement_transactions[statement_transactions['taction_id'].duplicated()]
