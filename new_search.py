@@ -30,6 +30,9 @@ def view_search(st: stl, db: DbAccess):
     taction_id = st.number_input('Taction ID', step=1)
     if taction_id == 0:
         taction_id = None
+    description = st.text_input('Transaction Description Match')
+    if description == '':
+        description = None
     
     start_date = None
     end_date = None    
@@ -47,6 +50,7 @@ def view_search(st: stl, db: DbAccess):
             before_date=end_date,
             include_statement_links=True,
             only_valid=only_valid,
+            description_text=description,
         )        
 
         if len(categories) > 0:

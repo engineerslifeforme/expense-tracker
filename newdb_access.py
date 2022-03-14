@@ -63,6 +63,7 @@ class DbAccess(object):
         account_id: int = None,
         absolute_value: bool = False,
         only_valid: bool = True,
+        description_text: str = None,
         taction_id_request: int = None,
         include_statement_links: bool = False):
         
@@ -76,6 +77,7 @@ class DbAccess(object):
             account_id=account_id,
             only_valid=only_valid,
             id_request=taction_id_request,
+            description_text=description_text,
         ).set_index('id')
         sub_totals = subs[['amount', 'taction_id']].groupby('taction_id').sum().reset_index(drop=False)
         if amount is not None:
@@ -133,6 +135,7 @@ class DbAccess(object):
         before_date: np.datetime64 = None,
         only_valid: bool = True,
         account_id: int = None,
+        description_text: str = None,
         id_request: int = None) -> pd.DataFrame:
         sql = 'SELECT * FROM taction'
 
@@ -147,6 +150,8 @@ class DbAccess(object):
             where_list.append(f'account_id = {account_id}')
         if id_request is not None:
             where_list.append(f'id = {id_request}')
+        if description_text is not None:
+            where_list.append(f"description LIKE '%{description_text}%'")
         sql += generate_where_statement(where_list)
         print(sql)
 
