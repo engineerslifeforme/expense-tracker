@@ -84,6 +84,9 @@ class DbAccess(object):
         absolute_value: bool = False,
         category_id: int = None,
         taction_id: int = None,
+        in_taction_list: list = None,
+        before_date: np.datetime64 = None,
+        after_date: np.datetime64 = None,
         only_valid: bool = True):
         sql = 'SELECT * FROM sub'
 
@@ -99,6 +102,13 @@ class DbAccess(object):
             where_list.append(f'taction_id = {taction_id}')
         if category_id is not None:
             where_list.append(f'category_id = {category_id}')
+        if in_taction_list is not None:
+            str_list = [str(item) for item in in_taction_list]
+            where_list.append(f"taction_id IN ({', '.join(str_list)})")
+        if after_date is not None:
+            where_list.append(f"date >= date('{after_date}')")
+        if before_date is not None:
+            where_list.append(f"date <= date('{before_date}')")
         sql += generate_where_statement(where_list)
         print(sql)
 
