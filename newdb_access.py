@@ -24,6 +24,8 @@ class DbAccess(object):
         include_deferred: bool = True,
         amount: Decimal = None,
         account_id: int = None,
+        before_date: np.datetime64 = None,
+        after_date: np.datetime64 = None,
         request_taction_id: int = None) -> pd.DataFrame:
         
         sql = 'SELECT * FROM statement_transactions'
@@ -39,6 +41,10 @@ class DbAccess(object):
             where_list.append(f'account_id = {account_id}')
         if request_taction_id is not None:
             where_list.append(f'taction_id = {request_taction_id}')
+        if after_date is not None:
+            where_list.append(f"date >= date('{after_date}')")
+        if before_date is not None:
+            where_list.append(f"date <= date('{before_date}')")
         sql += generate_where_statement(where_list)
         
         data = pd.read_sql_query(
@@ -57,7 +63,9 @@ class DbAccess(object):
         account_id: int = None,
         absolute_value: bool = False,
         only_valid: bool = True,
-        taction_id_request: int = None):
+        description_text: str = None,
+        taction_id_request: int = None,
+        include_statement_links: bool = False):
         
         # amount is the total not the sub
         subs = self.get_subtotals(
@@ -69,6 +77,7 @@ class DbAccess(object):
             account_id=account_id,
             only_valid=only_valid,
             id_request=taction_id_request,
+            description_text=description_text,
         ).set_index('id')
         sub_totals = subs[['amount', 'taction_id']].groupby('taction_id').sum().reset_index(drop=False)
         if amount is not None:
@@ -77,6 +86,13 @@ class DbAccess(object):
             else:
                 sub_totals = sub_totals.loc[sub_totals['amount']==amount, :]
         transactions = sub_totals.join(tactions, on='taction_id', how='inner', lsuffix='_sub')
+        if include_statement_links:
+            statements = self.get_statement_transactions(
+                amount=amount,
+                account_id=account_id,
+                request_taction_id=taction_id_request,
+            ).set_index('taction_id').rename({'id': 'statement_id'}, axis='columns')
+            transactions = transactions.join(statements[['statement_id', 'date']], on='taction_id', how='left', rsuffix='_statement')
         return transactions
 
     def get_subtotals(self, 
@@ -87,7 +103,8 @@ class DbAccess(object):
         in_taction_list: list = None,
         before_date: np.datetime64 = None,
         after_date: np.datetime64 = None,
-        only_valid: bool = True):
+        only_valid: bool = True,
+        only_real: bool = True):
         sql = 'SELECT * FROM sub'
 
         where_list = []
@@ -97,7 +114,9 @@ class DbAccess(object):
             else:
                 where_list.append(f'amount = {amount}')
         if only_valid:
-            where_list.append(f'valid = 1')
+            where_list.append('valid = 1')
+        if only_real:
+            where_list.append('not_real = 0')
         if taction_id is not None:
             where_list.append(f'taction_id = {taction_id}')
         if category_id is not None:
@@ -110,12 +129,13 @@ class DbAccess(object):
         if before_date is not None:
             where_list.append(f"date <= date('{before_date}')")
         sql += generate_where_statement(where_list)
-        print(sql)
+        #print(sql)
 
         data = pd.read_sql_query(
             sql,
             self.con,
             dtype={'amount': str},
+            parse_dates=['date'],
         )
         data['amount'] = data['amount'].apply(Decimal)
         return data
@@ -125,6 +145,7 @@ class DbAccess(object):
         before_date: np.datetime64 = None,
         only_valid: bool = True,
         account_id: int = None,
+        description_text: str = None,
         id_request: int = None) -> pd.DataFrame:
         sql = 'SELECT * FROM taction'
 
@@ -139,6 +160,8 @@ class DbAccess(object):
             where_list.append(f'account_id = {account_id}')
         if id_request is not None:
             where_list.append(f'id = {id_request}')
+        if description_text is not None:
+            where_list.append(f"description LIKE '%{description_text}%'")
         sql += generate_where_statement(where_list)
         print(sql)
 
@@ -305,6 +328,7 @@ class DbAccess(object):
                 new_id,
                 True,
                 False,
+                date,
             )
             self.update_budget(sub_amount, category_id)
         return new_id
@@ -335,7 +359,7 @@ class DbAccess(object):
     def get_next_sub_id(self):
         return self.get_subtotals(only_valid=False)['id'].max() + 1
 
-    def add_sub(self, amount: Decimal, category_id: int, taction_id: int, valid: bool, not_real: bool):
+    def add_sub(self, amount: Decimal, category_id: int, taction_id: int, valid: bool, not_real: bool, date):
         fields = [
             'id',
             'amount',
@@ -343,6 +367,7 @@ class DbAccess(object):
             'taction_id',
             'valid',
             'not_real',
+            'date',
         ]
         new_id = self.get_next_sub_id()
 
@@ -362,6 +387,7 @@ class DbAccess(object):
             taction_id,
             valid_int,
             not_real_int,
+            date,
         ])
         return new_id
 

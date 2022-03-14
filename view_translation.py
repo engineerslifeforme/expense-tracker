@@ -17,6 +17,8 @@ def translate_statement_transactions(data: pd.DataFrame, sort_column: str = 'dat
 def translate_transactions(data: pd.DataFrame, db: DbAccess = None) -> pd.DataFrame:
     data['not_real'] = data['not_real'].fillna(0).astype(int)
     data['amount'] = data['amount'].astype(float)
+    if 'balance' in data.columns:
+        data['balance'] = data['balance'].astype(float)
     if db is not None:
         data['account_id'] = data['account_id'].apply(db.account_translate, args=('name',))
         data['method_id'] = data['method_id'].apply(db.method_translate, args=('name',))
@@ -26,10 +28,10 @@ def translate_transactions(data: pd.DataFrame, db: DbAccess = None) -> pd.DataFr
         grouped = filtered_subs[['taction_id', 'category']].groupby('taction_id')['category'].apply(','.join)
         data = data.join(grouped, on='taction_id', how='left')
     data = data.sort_values('date', ascending=False)
-    data = data.style\
+    styled_data = data.style\
         .format(precision=2, subset=['amount'])\
         .hide_index()
-    return data
+    return styled_data
 
 def translate_accounts(data: pd.DataFrame) -> pd.DataFrame:
     data['balance'] = data['balance'].astype(float)

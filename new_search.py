@@ -30,6 +30,9 @@ def view_search(st: stl, db: DbAccess):
     taction_id = st.number_input('Taction ID', step=1)
     if taction_id == 0:
         taction_id = None
+    description = st.text_input('Transaction Description Match')
+    if description == '':
+        description = None
     
     start_date = None
     end_date = None    
@@ -39,24 +42,38 @@ def view_search(st: stl, db: DbAccess):
         end_date = right.date_input('End Date')    
 
     if st.checkbox('Transactions'):
+        only_valid = st.checkbox('Only Valid?', value=True)
         transactions = db.get_transactions(
             amount=amount,
             account_id=account_id,
             after_date=start_date,
             before_date=end_date,
+            include_statement_links=True,
+            only_valid=only_valid,
+            description_text=description,
         )        
 
         if len(categories) > 0:
             first_category_id = db.category_translate(categories[0], 'id')
             subs = db.get_subtotals(category_id=first_category_id)
             transactions = transactions.loc[transactions['taction_id'].isin(subs['taction_id']), :]
+
+        if st.checkbox('Only unmapped statements'):
+            transactions = transactions.loc[transactions['statement_id'].isna(), :]
         
+        columns = transactions.columns
+        displayed_columns = st.multiselect('Displayed Columns', options=columns, default=list(columns))
         st.markdown(str(len(transactions)))
-        st.write(vt.translate_transactions(transactions, db=db))
+        view_frame = vt.translate_transactions(transactions[displayed_columns], db=db)
+        st.write(view_frame)
 
         #view_data = vt.translate_transactions(transactions)
     if st.checkbox('Statements'):
-        statements = db.get_statement_transactions(amount=amount, request_taction_id=taction_id)
+        statements = db.get_statement_transactions(
+            amount=amount, 
+            account_id=account_id,
+            request_taction_id=taction_id,
+        )
         st.write(vt.translate_statement_transactions(statements))
         
 
