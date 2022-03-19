@@ -217,6 +217,21 @@ class DbAccess(object):
         data['increment'] = data['increment'].apply(Decimal)
         return data
 
+    def get_hsa_distributions(self, amount: Decimal = None) -> pd.DataFrame:
+        sql = 'SELECT * FROM hsa_distributions'
+        where_list = []
+        if amount is not None:
+            where_list.append(f'amount = {amount}')
+        sql += generate_where_statement(where_list)
+        data = pd.read_sql_query(
+            sql,
+            self.con,
+            dtype={'amount': str},
+            parse_dates=['date'],
+        )
+        data['amount'] = data['amount'].apply(Decimal)
+        return data
+
     def add_taction(self, date, transfer: bool, account_id: int, method_id: int, description: str, receipt: bool, valid: bool, not_real: bool):
         fields = [
             'id',
@@ -530,6 +545,35 @@ class DbAccess(object):
                 1,
                 1,
                 1,
+            ]
+        )
+        return new_id
+    
+    def add_hsa_distribution(self, date, person: str, merchant: str, amount: Decimal, description: str, expense_taction_id: int, distribution_taction_id: int, receipt_path: str):
+        new_id = self.get_hsa_distributions()['id'].max() + 1
+        self._insert(
+            'hsa_distributions',
+            [
+                'id',
+                'date',
+                'person',
+                'Merchant',
+                'amount',
+                'description',
+                'expense_taction_id',
+                'distribution_taction_id',
+                'receipt_path',
+            ],
+            [
+                new_id,
+                date,
+                person,
+                merchant,
+                amount,
+                description,
+                expense_taction_id,
+                distribution_taction_id,
+                receipt_path,
             ]
         )
         return new_id

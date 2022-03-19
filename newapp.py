@@ -15,6 +15,7 @@ from balances import view_balances
 from visual import visual_tab
 from period_verification import view_period_verification
 from visualize import view_visualize_tab
+from hsa_mapper import view_hsa_mapper
 
 db = DbAccess('example.db')
 
@@ -35,6 +36,7 @@ task = st.sidebar.radio('Tasks', options=[
     'Visualize',
     'Period Verification',
     'Visualization',
+    'HSA Mapping',
 ])
 
 if task == 'Statement Assignment':
@@ -61,5 +63,7 @@ elif task == 'Period Verification':
     view_period_verification(db)
 elif task == 'Visualization':
     view_visualize_tab(db)
+elif task == 'HSA Mapping':
+    view_hsa_mapper(db)
 else:
     st.markdown(f'Unknown task {task}')

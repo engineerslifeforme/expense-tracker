@@ -7,3 +7,5 @@
 csvs
 fix.sh
 statement_word_list.csv
+doc_path_map.yaml
+*hsa*.csv
