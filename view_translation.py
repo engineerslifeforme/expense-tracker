@@ -36,3 +36,7 @@ def translate_transactions(data: pd.DataFrame, db: DbAccess = None) -> pd.DataFr
 def translate_accounts(data: pd.DataFrame) -> pd.DataFrame:
     data['balance'] = data['balance'].astype(float)
     return data
+
+def translate_hsa(data: pd.DataFrame) -> pd.DataFrame:
+    data['amount'] = data['amount'].astype(float)
+    return data

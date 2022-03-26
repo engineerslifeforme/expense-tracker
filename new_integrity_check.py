@@ -16,6 +16,17 @@ def integrity_check(st: stl, db: DbAccess):
     statement_integrity(st, db)
     if st.checkbox('Check sub integrity?'):
         sub_integrity(st, db)
+    st.markdown('Check for duplicate HSA entries')
+    hsa_entries = db.get_hsa_distributions()
+    st.markdown('`expense_taction_id`')
+    hsa_entries_filtered = hsa_entries.loc[~hsa_entries['expense_taction_id'].isna(), :]
+    st.write(hsa_entries_filtered.loc[hsa_entries_filtered['expense_taction_id'].duplicated(), :])
+    st.markdown('`distribution_taction_id`')
+    hsa_entries_filtered = hsa_entries.loc[~hsa_entries['distribution_taction_id'].isna(), :]
+    st.write(hsa_entries_filtered.loc[hsa_entries_filtered['distribution_taction_id'].duplicated(), :])
+    st.markdown('`receipt_path`')
+    hsa_entries_filtered = hsa_entries.loc[~hsa_entries['receipt_path'].isna(), :]
+    st.write(vt.translate_hsa(hsa_entries_filtered.loc[hsa_entries_filtered['receipt_path'].duplicated(), :]))
 
 def sub_integrity(st: stl, db: DbAccess):
     subs = db.get_subtotals(only_valid=False)

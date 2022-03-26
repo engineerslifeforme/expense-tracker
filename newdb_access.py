@@ -549,8 +549,16 @@ class DbAccess(object):
         )
         return new_id
     
-    def add_hsa_distribution(self, date, person: str, merchant: str, amount: Decimal, description: str, expense_taction_id: int, distribution_taction_id: int, receipt_path: str):
+    def add_hsa_distribution(self, date, person: str, merchant: str, amount: Decimal, description: str, expense_taction_id: int, distribution_taction_id: int, receipt_path: str, hsa_debit: bool = False, dependent_care: bool = False):
         new_id = self.get_hsa_distributions()['id'].max() + 1
+        if hsa_debit:
+            hsa_debit_int = 1
+        else:
+            hsa_debit_int = 0
+        if dependent_care:
+            dependent_care_int = 1
+        else:
+            dependent_care_int = 0
         self._insert(
             'hsa_distributions',
             [
@@ -563,6 +571,8 @@ class DbAccess(object):
                 'expense_taction_id',
                 'distribution_taction_id',
                 'receipt_path',
+                'hsa_debit',
+                'dependent_care',
             ],
             [
                 new_id,
@@ -574,6 +584,8 @@ class DbAccess(object):
                 expense_taction_id,
                 distribution_taction_id,
                 receipt_path,
+                hsa_debit_int,
+                dependent_care_int,
             ]
         )
         return new_id
