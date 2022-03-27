@@ -18,31 +18,38 @@ ASSET_LIST = [
     'word_list.joblib',
 ]
 
-if action == 'upload':
+if action in ['upload', 'upload_db']:
     print('Uploading...')
     date_str = date.today().strftime("%Y%m%d")
     new_file = SERVER / f'{date_str}.db'
     print(f'Saving file to {new_file}')
     shutil.copyfile(LOCAL_FILE, new_file)
-    for asset_file in ASSET_LIST:
-        shutil.copyfile(
-            asset_file,
-            ASSETS / asset_file
-        )
-elif action == 'download':
+    if action == 'upload':
+        for asset_file in ASSET_LIST:
+            shutil.copyfile(
+                asset_file,
+                ASSETS / asset_file
+            )
+    else:
+        print('Skipping asset upload')
+
+elif action in ['download', 'download_db']:
     print('Downloading...')
     server_file_list = list(SERVER.glob('*.db'))
     server_file_list.sort()
     server_file = server_file_list[-1]
     print(f'Copying {server_file}')
     shutil.copyfile(server_file, LOCAL_FILE)
-    for asset_file in ASSET_LIST:
-        server_asset = ASSETS / asset_file
-        if not filecmp.cmp(server_asset, asset_file):
-            print(f'Copying {asset_file}')
-            shutil.copyfile(
-                server_asset,
-                asset_file
-            )
+    if action == 'download':
+        for asset_file in ASSET_LIST:
+            server_asset = ASSETS / asset_file
+            if not filecmp.cmp(server_asset, asset_file):
+                print(f'Copying {asset_file}')
+                shutil.copyfile(
+                    server_asset,
+                    asset_file
+                )
+    else:
+        print('Skipping download of assets')
 else:
     print(f'Unknown command {action}')
