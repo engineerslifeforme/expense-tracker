@@ -217,11 +217,13 @@ class DbAccess(object):
         data['increment'] = data['increment'].apply(Decimal)
         return data
 
-    def get_hsa_distributions(self, amount: Decimal = None) -> pd.DataFrame:
+    def get_hsa_distributions(self, amount: Decimal = None, source_id: str = None) -> pd.DataFrame:
         sql = 'SELECT * FROM hsa_distributions'
         where_list = []
         if amount is not None:
             where_list.append(f'amount = {amount}')
+        if source_id is not None:
+            where_list.append(f"source_id = '{source_id}'")
         sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
             sql,

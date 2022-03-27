@@ -71,6 +71,7 @@ def show_unclaimed(db: DbAccess):
         st.error('Select a Category!')
         
 def show_entry(db: DbAccess):
+    source_label = st.text_input('Source Label')
     uploaded_file = st.file_uploader('HSA Expense Statement')
 
     if uploaded_file is None:
@@ -94,10 +95,21 @@ def show_entry(db: DbAccess):
     expense_data['Submitted Amount'] = expense_data['Submitted Amount'].apply(Decimal)
     st.markdown(f'{len(expense_data)} Entries')
 
+    if st.checkbox('Filter Out Existing Based on Source ID', value=True):
+        expense_data = expense_data.reset_index(drop=False)
+        expense_data['source_id'] = source_label + '-' + expense_data['index'].astype(str)
+        existing_ids = db.get_hsa_distributions()['source_id']
+        expense_data = expense_data.loc[~expense_data['source_id'].isin(existing_ids), :]
+        st.markdown(f'{len(expense_data)} Remaining after filter')
+
+    if len(expense_data) < 1:
+        st.warning('No valid data or all entries have been filtered')
+        st.stop()
+
     expense_record = expense_data.to_dict(orient='records')
     current_index = int(st.number_input('Inspect Index', min_value=0, max_value=len(expense_record)-1, step=1))
-    source_label = st.text_input('Source Label')
-    source_id = f'{source_id}-{current_index}'
+    
+    source_id = f'{source_label}-{current_index}'
     current_record = expense_record[current_index]
 
     date = current_record['Expense Date']
