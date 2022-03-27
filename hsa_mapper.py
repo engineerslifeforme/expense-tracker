@@ -12,7 +12,6 @@ import os
 
 import streamlit as st
 import pandas as pd
-import yaml
 
 from newdb_access import DbAccess
 from view_translation import translate_transactions, translate_hsa
@@ -32,8 +31,23 @@ def view_hsa_mapper(db: DbAccess):
             entries = entries.loc[entries['hsa_debit'] == 0, :]
         if st.checkbox('Fitler out Dependent Care'):
             entries = entries.loc[entries['dependent_care'] == 0, :]
+        if st.checkbox('Show Receipt Assign Dialog'):
+            distribution_id = int(st.number_input('Distribution ID', min_value=0, step=1))
+            full_path = get_path(db)
+            if st.button('Assign'):
+                db.assign_hsa_receipt(full_path, distribution_id)
+                st.markdown(f'Assigned {full_path} to ID: {distribution_id}')
         st.markdown(f'{len(entries)} Entries')
         st.write(translate_hsa(entries))
+
+def get_path(db: DbAccess):
+    dir_map = db.get_hsa_paths()
+    file_dir = Path(dir_map[st.selectbox('File Directory', options=list(dir_map.keys()))])
+    st.markdown(f'Path: {file_dir}')
+    filename = st.selectbox('Filename', options=os.listdir(file_dir))
+    full_path = file_dir / filename
+    st.markdown(f'Full Path: {full_path}')
+    return full_path
 
 def show_unclaimed(db: DbAccess):
     st.markdown('### Unclaimed')
@@ -82,6 +96,8 @@ def show_entry(db: DbAccess):
 
     expense_record = expense_data.to_dict(orient='records')
     current_index = int(st.number_input('Inspect Index', min_value=0, max_value=len(expense_record)-1, step=1))
+    source_label = st.text_input('Source Label')
+    source_id = f'{source_id}-{current_index}'
     current_record = expense_record[current_index]
 
     date = current_record['Expense Date']
@@ -113,18 +129,9 @@ def show_entry(db: DbAccess):
     st.write(translate_transactions(potential_distributions))
     selected_distribution = st.selectbox('Selected Distribution', options=potential_distributions['taction_id'])
 
-    try:
-        with open('doc_path_map.yaml', 'r') as fh:
-            dir_map = yaml.safe_load(fh)
-    except:
-        st.error("No `doc_path_map.yaml' present.  Cannot continue.")
-        st.stop()
+    
     if st.checkbox('Receipt Exists?', value=True):
-        file_dir = Path(dir_map[st.selectbox('File Directory', options=list(dir_map.keys()))])
-        st.markdown(f'Path: {file_dir}')
-        filename = st.selectbox('Filename', options=os.listdir(file_dir))
-        full_path = file_dir / filename
-        st.markdown(f'Full Path: {full_path}')
+        full_path = get_path(db)
     else:
         full_path = None
 
@@ -138,6 +145,7 @@ def show_entry(db: DbAccess):
             selected_expense,
             selected_distribution,
             full_path,
+            source_id,
         )
         st.markdown(f'Added HSA Distribution: {new_id}')
     if st.button('Add unknown'):
@@ -150,6 +158,7 @@ def show_entry(db: DbAccess):
             'NULL',
             'NULL',
             'NULL',
+            source_id,
         )
     if st.button('Add Direct HSA Payment'):
         new_id = db.add_hsa_distribution(
@@ -161,6 +170,7 @@ def show_entry(db: DbAccess):
             'NULL',
             'NULL',
             'NULL',
+            source_id,
             hsa_debit=True,
         )
         st.markdown(f'Added HSA Distribution: {new_id}')
@@ -174,6 +184,7 @@ def show_entry(db: DbAccess):
             'NULL',
             'NULL',
             'NULL',
+            source_id,
             hsa_debit=False,
             dependent_care=True,
         )

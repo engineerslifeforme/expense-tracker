@@ -548,8 +548,11 @@ class DbAccess(object):
             ]
         )
         return new_id
+
+    def assign_hsa_receipt(self, receipt_path: str, distribution_id: int):
+        self._update('hsa_distributions', 'receipt_path', receipt_path, distribution_id, use_quotes=True)
     
-    def add_hsa_distribution(self, date, person: str, merchant: str, amount: Decimal, description: str, expense_taction_id: int, distribution_taction_id: int, receipt_path: str, hsa_debit: bool = False, dependent_care: bool = False):
+    def add_hsa_distribution(self, date, person: str, merchant: str, amount: Decimal, description: str, expense_taction_id: int, distribution_taction_id: int, receipt_path: str, source_id: str, hsa_debit: bool = False, dependent_care: bool = False):
         new_id = self.get_hsa_distributions()['id'].max() + 1
         if hsa_debit:
             hsa_debit_int = 1
@@ -573,6 +576,7 @@ class DbAccess(object):
                 'receipt_path',
                 'hsa_debit',
                 'dependent_care',
+                'source_id',
             ],
             [
                 new_id,
@@ -586,7 +590,12 @@ class DbAccess(object):
                 receipt_path,
                 hsa_debit_int,
                 dependent_care_int,
+                source_id
             ]
         )
         return new_id
+
+    def get_hsa_paths(self) -> dict:
+        sql = 'SELECT * FROM hsa_receipt_paths'
+        return pd.read_sql_query(sql, self.con).set_index('name').to_dict()['path']
 
