@@ -30,6 +30,10 @@ def print_statistics(data: pd.DataFrame):
 def view_visualize_tab(db: DbAccess):
     st.markdown('## Visualization')
 
+    st.markdown('### Budgets')
+    if st.checkbox('Show Budget Status'):
+        pass
+
     st.markdown('### Transactions')
     if st.checkbox('Show Transaction Visuals'):
         transactions = db.get_transactions()

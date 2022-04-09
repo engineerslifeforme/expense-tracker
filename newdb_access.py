@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from decimal import Decimal
+import datetime
 
 import sqlite3
 import pandas as pd
@@ -440,15 +441,15 @@ class DbAccess(object):
             entry_id,
         )
 
-    def _update(self, table_name: str, field_name: str, in_new_value, item_id: int, use_quotes: bool = False):
+    def _update(self, table_name: str, field_name: str, in_new_value, item_id: int, use_quotes: bool = False, id_field='id'):
         if use_quotes:
             new_value = f"'{in_new_value}'"
         else:
             new_value = in_new_value
         if in_new_value is None:
-            self.cursor.execute(f"UPDATE {table_name} SET {field_name} = ? WHERE id={item_id}", (None,))
+            self.cursor.execute(f"UPDATE {table_name} SET {field_name} = ? WHERE {id_field}={item_id}", (None,))
         else:
-            self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE id={item_id}")
+            self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE {id_field}={item_id}")
         self.con.commit()
 
     def add_statement_transaction(self, date, month:int, year:int, account_id:int, amount:Decimal, description:str = None):
@@ -600,4 +601,14 @@ class DbAccess(object):
     def get_hsa_paths(self) -> dict:
         sql = 'SELECT * FROM hsa_receipt_paths'
         return pd.read_sql_query(sql, self.con).set_index('name').to_dict()['path']
+
+    def get_budget_update_date(self) -> datetime.date:
+        sql = "SELECT * FROM important_dates WHERE name=\"last_budget_update\""
+        return datetime.datetime.utcfromtimestamp(int(pd.read_sql_query(sql, self.con, parse_dates=['date'])['date'].values[0])/1e9).date()
+
+    def update_budget_update_date(self, new_date: datetime.date):
+        self._update('important_dates', 'date', new_date, "\"last_budget_update\"", use_quotes=True, id_field='name')
+
+    def update_budgets(self):
+        pass
 

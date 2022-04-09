@@ -1,11 +1,30 @@
 """ Budget/Category Management """
 
 from decimal import Decimal
+import datetime
+from dateutil.relativedelta import relativedelta
 
 import streamlit as stl
 from newdb_access import DbAccess
 
 def display_budget_configuration(st: stl, db_data: DbAccess):
+    if st.checkbox('Add New Budgets and Categories'):
+        add_budget_category(st, db_data)
+    if st.checkbox('Check and Update Budgets'):
+        update_budgets(db_data)
+
+def update_budgets(db: DbAccess):
+    stl.markdown('Attempting to update budgets...')
+    today = datetime.datetime.today().date()
+    last_update = db.get_budget_update_date()
+    while last_update < today:
+        new_date = last_update + relativedelta(months=1)
+        db.update_budget_update_date(new_date)
+        last_update = db.get_budget_update_date()
+        stl.markdown(f'New date: {last_update}')
+    stl.markdown('All done updating budgets')
+
+def add_budget_category(st: stl, db_data: DbAccess):
     name = st.text_input('Budget Name')
     left, right = st.columns(2)    
     balance = Decimal(str(left.number_input(
