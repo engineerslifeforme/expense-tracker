@@ -8,6 +8,8 @@ import sqlite3
 import pandas as pd
 import numpy as np
 
+ZERO = Decimal('0.00')
+
 def generate_where_statement(where_list: list) -> str:
     if len(where_list) > 0:
         return f" WHERE {' AND '.join(where_list)}"
@@ -235,6 +237,17 @@ class DbAccess(object):
         data['amount'] = data['amount'].apply(Decimal)
         return data
 
+    def get_budget_adjustments(self) -> pd.DataFrame:
+        sql = 'SELECT * FROM budget_adjustments'
+        data = pd.read_sql_query(
+            sql,
+            self.con,
+            dtype={'amount': str},
+            parse_dates=['date'],
+        )
+        data['amount'] = data['amount'].apply(Decimal)
+        return data
+
     def add_taction(self, date, transfer: bool, account_id: int, method_id: int, description: str, receipt: bool, valid: bool, not_real: bool):
         fields = [
             'id',
@@ -423,6 +436,14 @@ class DbAccess(object):
             self.get_budget_from_category(category_id),
         )
 
+    def update_budget_by_budget(self, amount: Decimal, budget_id: int):
+        self._update_add(
+            'budget',
+            'balance',
+            amount,
+            budget_id,
+        )
+
     def get_budget_from_category(self, category_id: int) -> int:
         categories = self.get_categories()
         return categories[categories['id'] == category_id]['budget_id'].values[0]
@@ -609,6 +630,55 @@ class DbAccess(object):
     def update_budget_update_date(self, new_date: datetime.date):
         self._update('important_dates', 'date', new_date, "\"last_budget_update\"", use_quotes=True, id_field='name')
 
+    def add_budget_adjustment(self, amount: Decimal, budget_id: int, transfer: bool = False, periodic_update: bool = True) -> int:
+        ids = self.get_budget_adjustments()['id'].astype(int)
+        if len(ids) < 1:
+            new_id = 0
+        else:
+            new_id = ids.max() + 1
+        if transfer:
+            transfer_int = 1
+        else:
+            transfer_int = 0
+        if periodic_update:
+            periodic_update_int = 1
+        else:
+            periodic_update_int = 0
+        date = datetime.datetime.today().date()
+        self._insert(
+            'budget_adjustments',
+            [
+                'id',
+                'date',
+                'amount',
+                'budget_id',
+                'transfer',
+                'periodic_update',
+            ],
+            [
+                new_id,
+                date,
+                amount,
+                budget_id,
+                transfer_int,
+                periodic_update_int,
+            ]
+        )
+        return new_id
+
     def update_budgets(self):
-        pass
+        budget_dicts = self.get_budgets().to_dict(orient='records')
+        for budget_info in budget_dicts:
+            increment = budget_info['increment']
+            if increment != ZERO and budget_info['valid'] == 1:
+                budget_id = budget_info['id']
+                if budget_info['frequency'] == 'Y':
+                    increment = increment / Decimal('12.00')
+                elif budget_info['frequency'] == 'D':
+                    increment = (increment * Decimal('365.0')) / Decimal('12.0')
+                elif budget_info['frequency'] == 'W':
+                    increment = (increment * Decimal('52.0')) / Decimal('12.0')
+                self.add_budget_adjustment(increment, budget_id)
+                self.update_budget_by_budget(increment, budget_id)
+
 

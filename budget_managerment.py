@@ -17,11 +17,13 @@ def update_budgets(db: DbAccess):
     stl.markdown('Attempting to update budgets...')
     today = datetime.datetime.today().date()
     last_update = db.get_budget_update_date()
-    while last_update < today:
-        new_date = last_update + relativedelta(months=1)
-        db.update_budget_update_date(new_date)
+    next_update = last_update + relativedelta(months=1)
+    while next_update < today:
+        stl.markdown(f'Updating budgets for {next_update}')
+        db.update_budgets()
+        db.update_budget_update_date(next_update)
         last_update = db.get_budget_update_date()
-        stl.markdown(f'New date: {last_update}')
+        next_update = last_update + relativedelta(months=1)        
     stl.markdown('All done updating budgets')
 
 def add_budget_category(st: stl, db_data: DbAccess):
