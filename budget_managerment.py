@@ -12,6 +12,59 @@ def display_budget_configuration(st: stl, db_data: DbAccess):
         add_budget_category(st, db_data)
     if st.checkbox('Check and Update Budgets'):
         update_budgets(db_data)
+    if st.checkbox('Adjust Budgets'):
+        adjust_budget_balance(db_data)
+    if st.checkbox('Adjust Increment'):
+        adjust_budget_increment(db_data)
+
+def adjust_budget_increment(db: DbAccess):
+    stl.markdown('## Adjust Budget Increment')
+    options = ['None'] + list(db.get_budgets()['name'])
+    budget_name = stl.selectbox('Budget to Adjust', options=options)
+    valid_budget = budget_name != 'None'
+    if valid_budget:
+        budget_id = db.budget_translate(
+            budget_name,
+            'id'
+        )
+        selected_budgets = db.get_budgets(budget_id=budget_id)
+        current_increment = selected_budgets['increment'].values[0]
+        frequency = selected_budgets['frequency'].values[0]
+        stl.markdown(f'{budget_name} has a increment of ${current_increment} with frequency {frequency}')
+    else:
+        stl.markdown('Select a valid budget (not None)')
+    increment = Decimal(str(
+        stl.number_input('New Increment ($)', step=0.01)
+    ))
+    if valid_budget:
+        if stl.button('Adjust Budget Increment'):
+            db.set_budget_increment(increment, budget_id)
+            stl.markdown(f'{budget_name} increment set to ${increment}')
+
+def adjust_budget_balance(db: DbAccess):
+    stl.markdown('## Adjust Budget Balance')
+    options = ['None'] + list(db.get_budgets()['name'])
+    budget_name = stl.selectbox('Budget to Adjust', options=options)
+    valid_budget = budget_name != 'None'
+    if valid_budget:
+        budget_id = db.budget_translate(
+            budget_name,
+            'id'
+        )
+        current_budget = db.get_budgets(budget_id=budget_id)['balance'].values[0]
+        stl.markdown(f'{budget_name} has a balance of ${current_budget}')
+    else:
+        stl.markdown('Select a valid budget (not None)')
+    amount = Decimal(str(
+        stl.number_input('Budget Change ($)', step=0.01)
+    ))
+    if valid_budget:
+        if stl.button('Adjust Budget'):
+            new_id = db.adjust_budget(amount, budget_id)
+            stl.markdown(f'{budget_name} adjusted by ${amount}, ID: {new_id}')
+            new_budget = db.get_budgets(budget_id=budget_id)['balance'].values[0]
+            stl.markdown(f'Old budget: {current_budget}, New budget: {new_budget}')
+    
 
 def update_budgets(db: DbAccess):
     stl.markdown('Attempting to update budgets...')

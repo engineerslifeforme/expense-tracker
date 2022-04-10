@@ -666,6 +666,11 @@ class DbAccess(object):
         )
         return new_id
 
+    def adjust_budget(self, increment: Decimal, budget_id: int):
+        new_id = self.add_budget_adjustment(increment, budget_id)
+        self.update_budget_by_budget(increment, budget_id)
+        return new_id
+
     def update_budgets(self):
         budget_dicts = self.get_budgets().to_dict(orient='records')
         for budget_info in budget_dicts:
@@ -673,12 +678,14 @@ class DbAccess(object):
             if increment != ZERO and budget_info['valid'] == 1:
                 budget_id = budget_info['id']
                 if budget_info['frequency'] == 'Y':
-                    increment = increment / Decimal('12.00')
+                    increment = (increment / Decimal('12.00')).quantize(Decimal('1.00'))
                 elif budget_info['frequency'] == 'D':
-                    increment = (increment * Decimal('365.0')) / Decimal('12.0')
+                    increment = ((increment * Decimal('365.0')) / Decimal('12.0')).quantize(Decimal('1.00'))
                 elif budget_info['frequency'] == 'W':
-                    increment = (increment * Decimal('52.0')) / Decimal('12.0')
-                self.add_budget_adjustment(increment, budget_id)
-                self.update_budget_by_budget(increment, budget_id)
+                    increment = ((increment * Decimal('52.0')) / Decimal('12.0')).quantize(Decimal('1.00'))
+                self.adjust_budget(increment, budget_id)
+
+    def set_budget_increment(self, increment: Decimal, budget_id: int):
+        self._update('budget', 'increment', increment, budget_id)
 
 
