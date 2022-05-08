@@ -8,6 +8,9 @@ import pandas as pd
 from newdb_access import DbAccess
 import view_translation as vt
 
+def convert_df(df):
+   return df.to_csv().encode('utf-8')
+
 def show_detailed_account(db: DbAccess, account_name: str, account_data: pd.DataFrame):
     reverse_balance = Decimal(str(st.number_input('Reverse Balance Start', step=0.01)))
     
@@ -29,7 +32,16 @@ def view_balances(db: DbAccess):
     st.markdown('## Balances')
 
     st.markdown('### Accounts')
-    st.write(vt.translate_accounts(db.get_accounts()))
+    account_data = db.get_accounts()
+    st.write(vt.translate_accounts(account_data))
+    csv = convert_df(account_data)
+    st.download_button(
+        "Press to Download",
+        csv,
+        "searach.csv",
+        "text/csv",
+        key='download-csv'
+    )
 
     account_data = db.get_accounts()
     account_names = ['None'] + list(account_data['name'])
@@ -42,6 +54,15 @@ def view_balances(db: DbAccess):
 
     st.markdown('### Budgets')
     st.markdown(f'Last Update: {db.get_budget_update_date()}')
-    st.write(vt.translate_budgets(db.get_budgets()))
+    budget_data = db.get_budgets()
+    st.write(vt.translate_budgets(budget_data))
+    csv = convert_df(budget_data)
+    st.download_button(
+        "Press to Download",
+        csv,
+        "searach.csv",
+        "text/csv",
+        key='download-csv'
+    )
 
     

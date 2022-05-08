@@ -7,7 +7,8 @@ import streamlit as stl
 from newdb_access import DbAccess
 import view_translation as vt
 
-
+def convert_df(df):
+   return df.to_csv().encode('utf-8')
 
 def view_search(st: stl, db: DbAccess):
     st.markdown('## Search')
@@ -66,6 +67,14 @@ def view_search(st: stl, db: DbAccess):
         st.markdown(str(len(transactions)))
         view_frame = vt.translate_transactions(transactions[displayed_columns], db=db)
         st.write(view_frame)
+        csv = convert_df(transactions)
+        st.download_button(
+            "Press to Download",
+            csv,
+            "searach.csv",
+            "text/csv",
+            key='download-csv'
+        )
 
         #view_data = vt.translate_transactions(transactions)
     if st.checkbox('Statements'):
