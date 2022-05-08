@@ -16,6 +16,46 @@ def display_budget_configuration(st: stl, db_data: DbAccess):
         adjust_budget_balance(db_data)
     if st.checkbox('Adjust Increment'):
         adjust_budget_increment(db_data)
+    if st.checkbox('Budget Transfer'):
+        budget_transfer(db_data)
+
+def budget_transfer(db: DbAccess):
+    stl.markdown('## Budget Transfer')
+    budgets = db.get_budgets()
+    options = ['None'] + list(budgets['name'])
+    left, right = stl.columns(2)
+    withdraw_budget_name = left.selectbox('Budget to Withdraw From', options=options)
+    valid_selected_budgets = True
+    if withdraw_budget_name == 'None':
+        valid_selected_budgets = valid_selected_budgets and False
+        stl.warning('Select a valid budget to withdraw from!')
+    deposit_budget_name = right.selectbox('Budget to Deposit From', options=options)
+    if deposit_budget_name == 'None':
+        valid_selected_budgets = valid_selected_budgets and False
+        stl.warning('Select a valid budget to deposit from!')
+    if valid_selected_budgets:
+        withdraw_budget_id = db.budget_translate(
+            withdraw_budget_name,
+            'id'
+        )
+        deposit_budget_id = db.budget_translate(
+            deposit_budget_name,
+            'id'
+        )
+        withdraw_balance = budgets[budgets['name'] == withdraw_budget_name]['balance'].values[0]
+        left.markdown(f'{withdraw_budget_name} Balance: ${withdraw_balance}')
+        deposit_balance = budgets[budgets['name'] == deposit_budget_name]['balance'].values[0]
+        right.markdown(f'{deposit_budget_name} Balance: ${deposit_balance}')
+        amount = Decimal(str(stl.number_input('Amount to transfer', min_value=0.0)))
+        if stl.button('Transfer'):
+            stl.markdown(f'Transferred {amount}')
+            _budget_adjust(
+                db, Decimal('-1.00') * amount, withdraw_budget_id, withdraw_budget_name, withdraw_balance
+            )
+            _budget_adjust(
+                db, amount, deposit_budget_id, deposit_budget_name, deposit_balance
+            )
+
 
 def adjust_budget_increment(db: DbAccess):
     stl.markdown('## Adjust Budget Increment')
@@ -60,10 +100,13 @@ def adjust_budget_balance(db: DbAccess):
     ))
     if valid_budget:
         if stl.button('Adjust Budget'):
-            new_id = db.adjust_budget(amount, budget_id)
-            stl.markdown(f'{budget_name} adjusted by ${amount}, ID: {new_id}')
-            new_budget = db.get_budgets(budget_id=budget_id)['balance'].values[0]
-            stl.markdown(f'Old budget: {current_budget}, New budget: {new_budget}')
+            _budget_adjust(db, amount, budget_id, budget_name, current_budget)
+
+def _budget_adjust(db: DbAccess, amount: Decimal, budget_id: int, budget_name: str, current_budget: Decimal):
+    new_id = db.adjust_budget(amount, budget_id)
+    stl.markdown(f'{budget_name} adjusted by ${amount}, ID: {new_id}')
+    new_budget = db.get_budgets(budget_id=budget_id)['balance'].values[0]
+    stl.markdown(f'Old budget: {current_budget}, New budget: {new_budget}')
     
 
 def update_budgets(db: DbAccess):

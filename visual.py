@@ -153,6 +153,7 @@ def show_budget_status(subs: pd.DataFrame, db: DbAccess, months: int = 1):
     sub_by_budget = subs.groupby('budget_id').sum()
     budgets = db.get_budgets()
     budgets['float_increment'] = budgets['increment'].astype(float)
+    budgets['float_balance'] = budgets['balance'].astype(float)
     budgets['monthly_increment'] = budgets['float_increment']
     frequency_factors = {
         'D': 356.0*months_float,
@@ -174,7 +175,29 @@ def show_budget_status(subs: pd.DataFrame, db: DbAccess, months: int = 1):
         y='name',
         orientation='h',
         color='status',
-        title='Remaining Monthly Budget',
+        title='% Remaining Monthly Budget',
         height=1200,
+        labels={
+            'monthly_remaining': '% Budget Remaining'
+        }
+    ))
+
+    st.markdown('### Overspent Budgets')
+    budgets['float_balance_abs'] = budgets['float_balance'].abs()
+    st.plotly_chart(px.bar(
+        budgets.loc[budgets['float_balance'] < 0.0, :],
+        x='name',
+        y='float_balance_abs',
+        color='name',
+        title='Overspent Remaining Budgets',
+    ))
+
+    st.markdown('### Remaining Budgets')
+    st.plotly_chart(px.bar(
+        budgets.loc[budgets['float_balance'] > 0.0, :],
+        x='name',
+        y='float_balance_abs',
+        color='name',
+        title='Budget Remaining Budgets',
     ))
     

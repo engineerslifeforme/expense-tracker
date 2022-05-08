@@ -65,6 +65,8 @@ def view_search(st: stl, db: DbAccess):
         columns = transactions.columns
         displayed_columns = st.multiselect('Displayed Columns', options=columns, default=list(columns))
         st.markdown(str(len(transactions)))
+        if 'amount' in transactions.columns:
+            st.markdown(f"Total amount: ${transactions['amount'].sum()}")
         view_frame = vt.translate_transactions(transactions[displayed_columns], db=db)
         st.write(view_frame)
         csv = convert_df(transactions)
