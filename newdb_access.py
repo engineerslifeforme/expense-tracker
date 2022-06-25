@@ -181,6 +181,17 @@ class DbAccess(object):
             self.con
         )
 
+    def get_budget_profiles(self, budget_id: int = None) -> pd.DataFrame:
+        sql = 'SELECT * FROM budget_profile'
+        where_list = []
+        if budget_id is not None:
+            where_list.append(f'budget_id = {budget_id}')
+        sql += generate_where_statement(where_list)
+        return pd.read_sql_query(
+            sql,
+            self.con,
+        )
+
     def get_methods(self) -> pd.DataFrame:
         return pd.read_sql_query(
             'SELECT * from method',
@@ -618,6 +629,14 @@ class DbAccess(object):
             ]
         )
         return new_id
+
+    def add_budget_profile(self, budget_id: int, values: list):
+        column_names = ['budget_id'] + [f'month_{i}' for i in range(1,13)]
+        self._insert(
+            'budget_profile',
+            column_names,
+            [budget_id] + values,
+        )
 
     def get_hsa_paths(self) -> dict:
         sql = 'SELECT * FROM hsa_receipt_paths'
