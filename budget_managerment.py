@@ -9,6 +9,9 @@ from newdb_access import DbAccess
 import pandas as pd
 import plotly.express as px
 
+from budget_helper import get_monthly_budget_increment
+from common import ZERO
+
 def delta_to_days(delta: datetime.timedelta) -> int:
     return delta / datetime.timedelta(days=1.0)
 
@@ -55,68 +58,76 @@ def view_profile_status(db: DbAccess):
     stl.markdown(f'Current balance ${current_balance}')
 
     budget_profile = db.get_budget_profiles(budget_id=budget_id)
+    data = []
+    today = datetime.datetime.today().date()
+    start_month = today.month
+    start_year = today.year
+    end_month = start_month + 1
+    end_year = start_year
+    if end_month > 12:
+        end_month = 1
+        end_year += 1
+
+    profile_start_date = pd.to_datetime(f'{start_month}/1/{start_year}').date()
+    profile_end_date = pd.to_datetime(f'{end_month}/1/{end_year}').date()
     if len(budget_profile) < 1:
         stl.warning('No profile!')
-        return
-    else:
-        today = datetime.datetime.today().date()
-        start_month = today.month
-        start_year = today.year
-        end_month = start_month + 1
-        end_year = start_year
-        if end_month > 12:
-            end_month = 1
-            end_year += 1
-
-        profile_start_date = pd.to_datetime(f'{start_month}/1/{start_year}').date()
-        profile_end_date = pd.to_datetime(f'{end_month}/1/{end_year}').date()
+        monthly_increment = get_monthly_budget_increment(budget_data.to_dict(orient='records')[0])
+        for i in range(1, 13):
+            data.append({
+                'date': pd.to_datetime(f'{i}/1/{today.year}'),
+                'value': monthly_increment,
+                'type': 'profile',
+            })
+        profile_start_balance = monthly_increment
+        profile_end_balance = ZERO
+    else:        
         profile_start_balance = budget_profile[f'month_{start_month}'].values[0]
         profile_end_balance = budget_profile[f'month_{end_month}'].values[0]
-        stl.markdown(f'Start: Expected balance of ${profile_start_balance} on {profile_start_date}')
-        stl.markdown(f'End: Expected balance of ${profile_end_balance} on {profile_end_date}')
-        planned_balance_change = profile_end_balance - profile_start_balance
-        days_in_period = profile_end_date - profile_start_date
-        days_into_period = today - profile_start_date
-        expected_balance = Decimal(str(profile_start_balance + planned_balance_change * (days_into_period/days_in_period)))
-        stl.write(f'On {today} a balance of ${expected_balance} is expected')
-        if current_balance >= profile_start_balance:
-            if current_balance <= profile_end_balance:
-                stl.info('Budget on track')
-            else:
-                stl.success(f'Extra money available, ~${current_balance - expected_balance}')
-        else:
-            if current_balance >= profile_end_balance:
-                stl.info('Budget on track')
-            else:
-                stl.warning(f'Budget running low, ~${expected_balance - current_balance}')
-        data = []
         for i in range(1,13):
             data.append({
                 'date': pd.to_datetime(f'{i}/1/{today.year}').date(),
                 'value': budget_profile[f'month_{i}'].values[0],
                 'type': 'profile',
             })
-        data.append({
-            'date': today,
-            'value': expected_balance,
-            'type': 'expected',
-        })
-        data.append({
-            'date': today,
-            'value': current_balance,
-            'type': 'current',
-        })
-        data_df = pd.DataFrame(data)
-        #data_df['float_value'] = data_df['value'].astype(float)
-        #stl.write(data_df.drop('value', axis='columns'))
-        stl.plotly_chart(px.line(
-            data_df,
-            x='date',
-            y='value',
-            color='type',
-            title='Current, Expected, and Profile',
-            markers=True,
-        ))
+    stl.markdown(f'Start: Expected balance of ${profile_start_balance} on {profile_start_date}')
+    stl.markdown(f'End: Expected balance of ${profile_end_balance} on {profile_end_date}')
+    planned_balance_change = profile_end_balance - profile_start_balance
+    days_in_period = profile_end_date - profile_start_date
+    days_into_period = today - profile_start_date
+    expected_balance = Decimal(str(profile_start_balance + planned_balance_change * Decimal(str((days_into_period/days_in_period)))))
+    stl.write(f'On {today} a balance of ${expected_balance} is expected')
+    if current_balance >= profile_start_balance:
+        if current_balance <= profile_end_balance:
+            stl.info('Budget on track')
+        else:
+            stl.success(f'Extra money available, ~${current_balance - expected_balance}')
+    else:
+        if current_balance >= profile_end_balance:
+            stl.info('Budget on track')
+        else:
+            stl.warning(f'Budget running low, ~${expected_balance - current_balance}')
+    data.append({
+        'date': today,
+        'value': expected_balance,
+        'type': 'expected',
+    })
+    data.append({
+        'date': today,
+        'value': current_balance,
+        'type': 'current',
+    })
+    data_df = pd.DataFrame(data)
+    #data_df['float_value'] = data_df['value'].astype(float)
+    #stl.write(data_df.drop('value', axis='columns'))
+    stl.plotly_chart(px.line(
+        data_df,
+        x='date',
+        y='value',
+        color='type',
+        title='Current, Expected, and Profile',
+        markers=True,
+    ))
 
 def add_budget_profile(db: DbAccess):
     budget_name, budget_id = get_budget(db, 'Create Profile for Budget')

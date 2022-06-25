@@ -8,6 +8,8 @@ import sqlite3
 import pandas as pd
 import numpy as np
 
+from budget_helper import get_monthly_budget_increment
+
 ZERO = Decimal('0.00')
 
 def generate_where_statement(where_list: list) -> str:
@@ -187,10 +189,15 @@ class DbAccess(object):
         if budget_id is not None:
             where_list.append(f'budget_id = {budget_id}')
         sql += generate_where_statement(where_list)
-        return pd.read_sql_query(
+        value_columns = {column_name: str for column_name in self.get_budget_profile_column_names() if 'month' in column_name}
+        data = pd.read_sql_query(
             sql,
             self.con,
+            dtype=value_columns,
         )
+        for column_name in value_columns:
+            data[column_name] = data[column_name].apply(Decimal)
+        return data
 
     def get_methods(self) -> pd.DataFrame:
         return pd.read_sql_query(
@@ -630,8 +637,11 @@ class DbAccess(object):
         )
         return new_id
 
-    def add_budget_profile(self, budget_id: int, values: list):
-        column_names = ['budget_id'] + [f'month_{i}' for i in range(1,13)]
+    def get_budget_profile_column_names(self):
+        return ['budget_id'] + [f'month_{i}' for i in range(1,13)]
+    
+    def add_budget_profile(self, budget_id: int, values: list):        
+        column_names = self.get_budget_profile_column_names()
         self._insert(
             'budget_profile',
             column_names,
@@ -689,16 +699,6 @@ class DbAccess(object):
         new_id = self.add_budget_adjustment(increment, budget_id)
         self.update_budget_by_budget(increment, budget_id)
         return new_id
-
-    def get_monthly_budget_increment(budget_info: dict) -> Decimal:
-        increment = budget_info['increment']
-        if budget_info['frequency'] == 'Y':
-            increment = (increment / Decimal('12.00')).quantize(Decimal('1.00'))
-        elif budget_info['frequency'] == 'D':
-            increment = ((increment * Decimal('365.0')) / Decimal('12.0')).quantize(Decimal('1.00'))
-        elif budget_info['frequency'] == 'W':
-            increment = ((increment * Decimal('52.0')) / Decimal('12.0')).quantize(Decimal('1.00'))
-        return increment
 
     def update_budgets(self):
         budget_dicts = self.get_budgets().to_dict(orient='records')
