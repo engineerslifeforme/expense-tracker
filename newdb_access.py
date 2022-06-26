@@ -223,11 +223,13 @@ class DbAccess(object):
         data['balance'] = data['balance'].apply(Decimal)
         return data
 
-    def get_budgets(self, budget_id: int = None) -> pd.DataFrame:
+    def get_budgets(self, budget_id: int = None, only_visible: bool = True) -> pd.DataFrame:
         sql = 'SELECT * FROM budget'
         where_list = []
         if budget_id is not None:
             where_list.append(f'id = {budget_id}')
+        if only_visible:
+            where_list.append('visibility = 1')
         sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
             sql,

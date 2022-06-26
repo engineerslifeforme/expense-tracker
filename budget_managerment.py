@@ -43,19 +43,43 @@ def display_budget_configuration(st: stl, db_data: DbAccess):
         budget_transfer(db_data)
     if st.checkbox('Add Budget Profile'):
         add_budget_profile(db_data)
+    if st.checkbox('Check All Budget Status'):
+        view_budget_status(db_data)
     if st.checkbox('View Profile Status'):
         view_profile_status(db_data)
 
-def view_profile_status(db: DbAccess):
-    stl.markdown('## Profile Status')
-    budget_name, budget_id = get_budget(db, 'View Profile Status for Budget')
+def view_budget_status(db: DbAccess):
+    stl.markdown('## All Budget Status')
+    budgets = db.get_budgets()
+    data = []
+    for budget_data in budgets.to_dict(orient='records'):
+        state, diff, expected_balance = view_profile_status(db, display=False, budget_id=budget_data['id'])
+        data.append({
+            'name' : budget_data['name'],
+            'current_balance': budget_data['balance'],
+            'state': state,
+            'month_increment': get_monthly_budget_increment(budget_data),
+            'diff': diff,
+            'expected_balance': expected_balance,
+        })
+    data_df = pd.DataFrame(data)
+    data_df['current_balance'] = data_df['current_balance'].astype(float)
+    data_df['diff'] = data_df['diff'].astype(float)
+    data_df['month_increment'] = data_df['month_increment'].astype(float)
+    data_df['expected_balance'] = data_df['expected_balance'].astype(float)
+    stl.write(data_df)
+
+def view_profile_status(db: DbAccess, display: bool = True, budget_id: int = None):
+    if display:
+        stl.markdown('## Profile Status')
+        _, budget_id = get_budget(db, 'View Profile Status for Budget')
     if budget_id is None:
         return
     
     budget_data = db.get_budgets(budget_id=budget_id)
     current_balance = budget_data['balance'].values[0]
-    current_increment = budget_data['increment'].values[0]
-    stl.markdown(f'Current balance ${current_balance}')
+    if display:
+        stl.markdown(f'Current balance ${current_balance}')
 
     budget_profile = db.get_budget_profiles(budget_id=budget_id)
     data = []
@@ -71,7 +95,8 @@ def view_profile_status(db: DbAccess):
     profile_start_date = pd.to_datetime(f'{start_month}/1/{start_year}').date()
     profile_end_date = pd.to_datetime(f'{end_month}/1/{end_year}').date()
     if len(budget_profile) < 1:
-        stl.warning('No profile!')
+        if display:
+            stl.warning('No profile!')
         monthly_increment = get_monthly_budget_increment(budget_data.to_dict(orient='records')[0])
         for i in range(1, 13):
             data.append({
@@ -90,23 +115,37 @@ def view_profile_status(db: DbAccess):
                 'value': budget_profile[f'month_{i}'].values[0],
                 'type': 'profile',
             })
-    stl.markdown(f'Start: Expected balance of ${profile_start_balance} on {profile_start_date}')
-    stl.markdown(f'End: Expected balance of ${profile_end_balance} on {profile_end_date}')
+    if display:
+        stl.markdown(f'Start: Expected balance of ${profile_start_balance} on {profile_start_date}')
+        stl.markdown(f'End: Expected balance of ${profile_end_balance} on {profile_end_date}')
     planned_balance_change = profile_end_balance - profile_start_balance
     days_in_period = profile_end_date - profile_start_date
     days_into_period = today - profile_start_date
     expected_balance = Decimal(str(profile_start_balance + planned_balance_change * Decimal(str((days_into_period/days_in_period)))))
-    stl.write(f'On {today} a balance of ${expected_balance} is expected')
+    if display:
+        stl.write(f'On {today} a balance of ${expected_balance} is expected')
+    state = None
+    diff = ZERO
     if current_balance >= profile_start_balance:
         if current_balance <= profile_end_balance:
-            stl.info('Budget on track')
+            state = 'On Track'
+            if display:
+                stl.info('Budget on track')
         else:
-            stl.success(f'Extra money available, ~${current_balance - expected_balance}')
+            state = 'Extra'
+            diff = current_balance - expected_balance
+            if display:
+                stl.success(f'Extra money available, ~${diff}')
     else:
         if current_balance >= profile_end_balance:
-            stl.info('Budget on track')
+            state = 'On Track'
+            if display:
+                stl.info('Budget on track')
         else:
-            stl.warning(f'Budget running low, ~${expected_balance - current_balance}')
+            state = 'Negative'
+            diff = current_balance - expected_balance
+            if display:
+                stl.warning(f'Budget running low, ~${diff}')
     data.append({
         'date': today,
         'value': expected_balance,
@@ -117,17 +156,19 @@ def view_profile_status(db: DbAccess):
         'value': current_balance,
         'type': 'current',
     })
-    data_df = pd.DataFrame(data)
-    #data_df['float_value'] = data_df['value'].astype(float)
-    #stl.write(data_df.drop('value', axis='columns'))
-    stl.plotly_chart(px.line(
-        data_df,
-        x='date',
-        y='value',
-        color='type',
-        title='Current, Expected, and Profile',
-        markers=True,
-    ))
+    data_df = pd.DataFrame(data)    
+    if display:
+        #data_df['float_value'] = data_df['value'].astype(float)
+        #stl.write(data_df.drop('value', axis='columns'))
+        stl.plotly_chart(px.line(
+            data_df,
+            x='date',
+            y='value',
+            color='type',
+            title='Current, Expected, and Profile',
+            markers=True,
+        ))
+    return state, diff, expected_balance
 
 def add_budget_profile(db: DbAccess):
     budget_name, budget_id = get_budget(db, 'Create Profile for Budget')
