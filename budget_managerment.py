@@ -110,17 +110,19 @@ def _budget_adjust(db: DbAccess, amount: Decimal, budget_id: int, budget_name: s
     
 
 def update_budgets(db: DbAccess):
-    stl.markdown('Attempting to update budgets...')
     today = datetime.datetime.today().date()
     last_update = db.get_budget_update_date()
+    stl.markdown(f"Last update {last_update}")
     next_update = last_update + relativedelta(months=1)
-    while next_update < today:
-        stl.markdown(f'Updating budgets for {next_update}')
-        db.update_budgets()
-        db.update_budget_update_date(next_update)
-        last_update = db.get_budget_update_date()
-        next_update = last_update + relativedelta(months=1)        
-    stl.markdown('All done updating budgets')
+    update_limit = stl.date_input('Update Through', value=next_update)
+    if stl.button('Update Budget Balances!'):
+        while next_update < update_limit:
+            stl.markdown(f'Updating budgets for {next_update}')
+            db.update_budgets()
+            db.update_budget_update_date(next_update)
+            last_update = db.get_budget_update_date()
+            next_update = last_update + relativedelta(months=1)        
+        stl.markdown('All done updating budgets')
 
 def add_budget_category(st: stl, db_data: DbAccess):
     name = st.text_input('Budget Name')
