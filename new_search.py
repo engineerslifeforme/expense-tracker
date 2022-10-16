@@ -34,6 +34,9 @@ def view_search(st: stl, db: DbAccess):
     description = st.text_input('Transaction Description Match')
     if description == '':
         description = None
+    budget_id = st.number_input('Budget ID')
+    if budget_id == 0:
+        budget_id = None
     
     start_date = None
     end_date = None    
@@ -87,5 +90,21 @@ def view_search(st: stl, db: DbAccess):
         )
         st.write(vt.translate_statement_transactions(statements))
         
+    if st.checkbox('Budget Adjustments'):
+        st.markdown("### Budget Adjustments")
+        data = db.get_budget_adjustments(budget_id=budget_id)
+        data['amount'] = data['amount'].astype(float)
+        st.write(data)
+
+    if st.checkbox('Subtotals'):
+        st.markdown("### Subtotals")
+        data = db.get_subtotals(
+            category_id=db.category_translate(categories[0], 'id'),
+            before_date=end_date,
+            after_date=start_date,
+        )
+        data['amount'] = data['amount'].astype(float)
+        st.markdown(f"Total: ${data['amount'].sum()}")
+        st.write(data)
 
 

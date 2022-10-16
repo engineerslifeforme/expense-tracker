@@ -8,6 +8,8 @@ import sqlite3
 import pandas as pd
 import numpy as np
 
+from budget_helper import get_monthly_budget_increment
+
 ZERO = Decimal('0.00')
 
 def generate_where_statement(where_list: list) -> str:
@@ -181,6 +183,22 @@ class DbAccess(object):
             self.con
         )
 
+    def get_budget_profiles(self, budget_id: int = None) -> pd.DataFrame:
+        sql = 'SELECT * FROM budget_profile'
+        where_list = []
+        if budget_id is not None:
+            where_list.append(f'budget_id = {budget_id}')
+        sql += generate_where_statement(where_list)
+        value_columns = {column_name: str for column_name in self.get_budget_profile_column_names() if 'month' in column_name}
+        data = pd.read_sql_query(
+            sql,
+            self.con,
+            dtype=value_columns,
+        )
+        for column_name in value_columns:
+            data[column_name] = data[column_name].apply(Decimal)
+        return data
+
     def get_methods(self) -> pd.DataFrame:
         return pd.read_sql_query(
             'SELECT * from method',
@@ -205,11 +223,13 @@ class DbAccess(object):
         data['balance'] = data['balance'].apply(Decimal)
         return data
 
-    def get_budgets(self, budget_id: int = None) -> pd.DataFrame:
+    def get_budgets(self, budget_id: int = None, only_visible: bool = True) -> pd.DataFrame:
         sql = 'SELECT * FROM budget'
         where_list = []
         if budget_id is not None:
             where_list.append(f'id = {budget_id}')
+        if only_visible:
+            where_list.append('visibility = 1')
         sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
             sql,
@@ -237,8 +257,12 @@ class DbAccess(object):
         data['amount'] = data['amount'].apply(Decimal)
         return data
 
-    def get_budget_adjustments(self) -> pd.DataFrame:
+    def get_budget_adjustments(self, budget_id: int = None) -> pd.DataFrame:
         sql = 'SELECT * FROM budget_adjustments'
+        where_list = []
+        if budget_id is not None:
+            where_list.append(f'budget_id = {budget_id}')
+        sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
             sql,
             self.con,
@@ -619,6 +643,17 @@ class DbAccess(object):
         )
         return new_id
 
+    def get_budget_profile_column_names(self):
+        return ['budget_id'] + [f'month_{i}' for i in range(1,13)]
+    
+    def add_budget_profile(self, budget_id: int, values: list):        
+        column_names = self.get_budget_profile_column_names()
+        self._insert(
+            'budget_profile',
+            column_names,
+            [budget_id] + values,
+        )
+
     def get_hsa_paths(self) -> dict:
         sql = 'SELECT * FROM hsa_receipt_paths'
         return pd.read_sql_query(sql, self.con).set_index('name').to_dict()['path']
@@ -677,12 +712,7 @@ class DbAccess(object):
             increment = budget_info['increment']
             if increment != ZERO and budget_info['valid'] == 1:
                 budget_id = budget_info['id']
-                if budget_info['frequency'] == 'Y':
-                    increment = (increment / Decimal('12.00')).quantize(Decimal('1.00'))
-                elif budget_info['frequency'] == 'D':
-                    increment = ((increment * Decimal('365.0')) / Decimal('12.0')).quantize(Decimal('1.00'))
-                elif budget_info['frequency'] == 'W':
-                    increment = ((increment * Decimal('52.0')) / Decimal('12.0')).quantize(Decimal('1.00'))
+                increment = get_monthly_budget_increment(budget_info)
                 self.adjust_budget(increment, budget_id)
 
     def set_budget_increment(self, increment: Decimal, budget_id: int):
