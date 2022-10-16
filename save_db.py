@@ -43,7 +43,11 @@ elif action in ['download', 'download_db']:
     if action == 'download':
         for asset_file in ASSET_LIST:
             server_asset = ASSETS / asset_file
-            if not filecmp.cmp(server_asset, asset_file):
+            copy_down = True
+            if Path(asset_file).exists():
+                if filecmp.cmp(server_asset, asset_file):
+                    copy_down = False
+            if copy_down:
                 print(f'Copying {asset_file}')
                 shutil.copyfile(
                     server_asset,

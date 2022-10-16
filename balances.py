@@ -12,6 +12,9 @@ from common import ZERO
 def convert_df(df):
    return df.to_csv().encode('utf-8')
 
+def convert_df(df):
+   return df.to_csv().encode('utf-8')
+
 def show_detailed_account(db: DbAccess, account_name: str, account_data: pd.DataFrame):
     reverse_balance = Decimal(str(st.number_input('Reverse Balance Start', step=0.01)))
     
