@@ -7,6 +7,7 @@ import pandas as pd
 
 from newdb_access import DbAccess
 import view_translation as vt
+from common import ZERO
 
 def convert_df(df):
    return df.to_csv().encode('utf-8')
@@ -33,6 +34,7 @@ def view_balances(db: DbAccess):
 
     st.markdown('### Accounts')
     account_data = db.get_accounts()
+    st.markdown(f"Total Balance: ${account_data['balance'].sum()}")
     st.write(vt.translate_accounts(account_data))
     csv = convert_df(account_data)
     st.download_button(
@@ -55,6 +57,8 @@ def view_balances(db: DbAccess):
     st.markdown('### Budgets')
     st.markdown(f'Last Update: {db.get_budget_update_date()}')
     budget_data = db.get_budgets()
+    st.markdown(f"Sum positive budgets: {budget_data.loc[budget_data['balance'] > ZERO, 'balance'].sum()}")
+    st.markdown(f"Sum negative budgets: {budget_data.loc[budget_data['balance'] < ZERO, 'balance'].sum()}")
     st.write(vt.translate_budgets(budget_data))
     csv = convert_df(budget_data)
     st.download_button(
