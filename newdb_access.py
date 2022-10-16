@@ -257,8 +257,12 @@ class DbAccess(object):
         data['amount'] = data['amount'].apply(Decimal)
         return data
 
-    def get_budget_adjustments(self) -> pd.DataFrame:
+    def get_budget_adjustments(self, budget_id: int = None) -> pd.DataFrame:
         sql = 'SELECT * FROM budget_adjustments'
+        where_list = []
+        if budget_id is not None:
+            where_list.append(f'budget_id = {budget_id}')
+        sql += generate_where_statement(where_list)
         data = pd.read_sql_query(
             sql,
             self.con,
