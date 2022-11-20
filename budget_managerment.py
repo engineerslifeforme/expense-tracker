@@ -47,6 +47,44 @@ def display_budget_configuration(st: stl, db_data: DbAccess):
         view_budget_status(db_data)
     if st.checkbox('View Profile Status'):
         view_profile_status(db_data)
+    if st.checkbox('View Budget History'):
+        view_budget_history(db_data)
+
+def view_budget_history(db: DbAccess):
+    stl.markdown('## Budget History')
+    left, right = stl.columns(2)
+    budgets = db.get_budgets()
+    budget_id = db.budget_translate(left.selectbox('Select budget', options=budgets['name']), "id")
+    start_date = pd.to_datetime(right.date_input('Start Date'))
+    stl.write(budget_id)
+    category_ids = list(db.get_categories(budget_id=budget_id)['id'].values)
+    subtotals = pd.concat([db.get_subtotals(category_id=cat, after_date=start_date) for cat in category_ids])[['amount', 'date']]
+    subtotals['type'] = 'sub'
+    budget_adjustments = db.get_budget_adjustments(budget_id=budget_id, after_date=start_date)[['date', 'amount']]
+    budget_adjustments['type'] = 'bud_adj'
+    all_amounts = pd.concat([subtotals, budget_adjustments]).sort_values('date', ascending=False)
+    all_amounts['running_sum'] = all_amounts['amount'].cumsum()
+    all_amounts = all_amounts.drop_duplicates(subset='date', keep='last')
+    budget_balance = budgets[budgets['id'] == budget_id]['balance'].values[0]
+    stl.write(budget_balance)
+    all_amounts['balance'] = budget_balance - all_amounts['running_sum']
+    stl.markdown(f"{len(all_amounts)} Entries")
+    vis_all_amounts = all_amounts.copy()
+    vis_all_amounts[['amount', 'running_sum', 'balance']] = vis_all_amounts[['amount', 'running_sum', 'balance']].astype(float)
+    expenses = vis_all_amounts.loc[vis_all_amounts['amount'] < 0.0, :]
+    deposits = vis_all_amounts.loc[vis_all_amounts['amount'] > 0.0, :]
+    stl.write(vis_all_amounts)
+    # # This styles the line
+    fig = px.line(
+            vis_all_amounts,
+            x='date',
+            y='balance',
+        )
+    fig.update_traces(line=dict(color='red', width=3.0))
+
+    stl.plotly_chart(fig)
+
+
 
 def view_budget_status(db: DbAccess):
     stl.markdown('## All Budget Status')
