@@ -56,33 +56,61 @@ def view_budget_history(db: DbAccess):
     budgets = db.get_budgets()
     budget_id = db.budget_translate(left.selectbox('Select budget', options=budgets['name']), "id")
     start_date = pd.to_datetime(right.date_input('Start Date'))
-    stl.write(budget_id)
+    stl.warning('Some data does not make sense prior to May 2022!')
     category_ids = list(db.get_categories(budget_id=budget_id)['id'].values)
-    subtotals = pd.concat([db.get_subtotals(category_id=cat, after_date=start_date) for cat in category_ids])[['amount', 'date']]
-    subtotals['type'] = 'sub'
-    budget_adjustments = db.get_budget_adjustments(budget_id=budget_id, after_date=start_date)[['date', 'amount']]
-    budget_adjustments['type'] = 'bud_adj'
+    subtotals_full = pd.concat([db.get_subtotals(category_id=cat, after_date=start_date) for cat in category_ids])
+    subtotals = subtotals_full[['amount', 'date']]
+    subtotals['source'] = 'sub'
+    budget_adjustments_full = db.get_budget_adjustments(budget_id=budget_id, after_date=start_date)
+    budget_adjustments = budget_adjustments_full[['date', 'amount']]
+    budget_adjustments['source'] = 'bud_adj'
     all_amounts = pd.concat([subtotals, budget_adjustments]).sort_values('date', ascending=False)
     all_amounts['running_sum'] = all_amounts['amount'].cumsum()
     all_amounts = all_amounts.drop_duplicates(subset='date', keep='last')
     budget_balance = budgets[budgets['id'] == budget_id]['balance'].values[0]
-    stl.write(budget_balance)
+    stl.write(f"Current Balance for selected budget: ${budget_balance}")
     all_amounts['balance'] = budget_balance - all_amounts['running_sum']
     stl.markdown(f"{len(all_amounts)} Entries")
     vis_all_amounts = all_amounts.copy()
     vis_all_amounts[['amount', 'running_sum', 'balance']] = vis_all_amounts[['amount', 'running_sum', 'balance']].astype(float)
-    expenses = vis_all_amounts.loc[vis_all_amounts['amount'] < 0.0, :]
-    deposits = vis_all_amounts.loc[vis_all_amounts['amount'] > 0.0, :]
-    stl.write(vis_all_amounts)
+    vis_all_amounts['type'] = 'expense'
+    vis_all_amounts.loc[vis_all_amounts['amount'] > 0.0, 'type'] = 'credit'
+    #stl.write(vis_all_amounts)
     # # This styles the line
     fig = px.line(
             vis_all_amounts,
             x='date',
             y='balance',
+            title='Running balance of Budget',
         )
     fig.update_traces(line=dict(color='red', width=3.0))
-
     stl.plotly_chart(fig)
+    vis_all_amounts.set_index('date', inplace=True)
+    month_data = vis_all_amounts.groupby([
+        vis_all_amounts.index.year,
+        vis_all_amounts.index.month,
+        'type',
+    ]).sum().reset_index(level=0).rename({'date': 'year'}, axis='columns').reset_index().rename({'date': 'month'}, axis='columns')
+    month_data['date'] = pd.to_datetime(month_data[['year', 'month']].assign(DAY=1))
+    month_data.loc[month_data['amount'] < 0.0, 'amount'] = month_data.loc[month_data['amount'] < 0.0, 'amount'] * -1
+    stl.write(month_data)
+    stl.plotly_chart(px.bar(
+        month_data,
+        x='date',
+        y='amount',
+        color='type',
+        title='Monthly expenses and credits',
+        barmode='group',
+    ))
+    
+    if stl.checkbox("Show details"):
+        transactions = db.get_transactions(after_date=start_date).sort_values('date', ascending=False)
+        transactions = transactions.loc[transactions['taction_id'].isin(subtotals_full['taction_id']), :]
+        transactions['amount'] = transactions['amount'].astype(float)
+        stl.write(transactions)
+        budget_adjustments_full = budget_adjustments_full.sort_values('date', ascending=False)
+        budget_adjustments_full['amount'] = budget_adjustments_full['amount'].astype(float)
+        stl.write(budget_adjustments_full)
 
 
 
