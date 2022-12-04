@@ -60,6 +60,8 @@ def view_balances(db: DbAccess):
     st.markdown('### Budgets')
     st.markdown(f'Last Update: {db.get_budget_update_date()}')
     budget_data = db.get_budgets()
+    ignore_budgets = st.multiselect('Budgets to ignore', options=budget_data['name'])
+    budget_data = budget_data.loc[~budget_data['name'].isin(ignore_budgets), :]
     st.markdown(f"Sum positive budgets: {budget_data.loc[budget_data['balance'] > ZERO, 'balance'].sum()}")
     st.markdown(f"Sum negative budgets: {budget_data.loc[budget_data['balance'] < ZERO, 'balance'].sum()}")
     st.write(vt.translate_budgets(budget_data))

@@ -64,9 +64,9 @@ def view_budget_history(db: DbAccess):
     budget_adjustments_full = db.get_budget_adjustments(budget_id=budget_id, after_date=start_date)
     budget_adjustments = budget_adjustments_full[['date', 'amount']]
     budget_adjustments['source'] = 'bud_adj'
-    all_amounts = pd.concat([subtotals, budget_adjustments]).sort_values('date', ascending=False)
-    all_amounts['running_sum'] = all_amounts['amount'].cumsum()
-    all_amounts = all_amounts.drop_duplicates(subset='date', keep='last')
+    all_amounts_full = pd.concat([subtotals, budget_adjustments]).sort_values('date', ascending=False)
+    all_amounts_full['running_sum'] = all_amounts_full['amount'].cumsum()
+    all_amounts = all_amounts_full.drop_duplicates(subset='date', keep='last')
     budget_balance = budgets[budgets['id'] == budget_id]['balance'].values[0]
     stl.write(f"Current Balance for selected budget: ${budget_balance}")
     all_amounts['balance'] = budget_balance - all_amounts['running_sum']
@@ -85,23 +85,30 @@ def view_budget_history(db: DbAccess):
         )
     fig.update_traces(line=dict(color='red', width=3.0))
     stl.plotly_chart(fig)
-    vis_all_amounts.set_index('date', inplace=True)
-    month_data = vis_all_amounts.groupby([
-        vis_all_amounts.index.year,
-        vis_all_amounts.index.month,
+    vis_all_amounts_full = all_amounts_full.copy()
+    vis_all_amounts_full['amount'] = vis_all_amounts_full['amount'].astype(float)
+    vis_all_amounts_full.set_index('date', inplace=True)
+    vis_all_amounts_full['type'] = 'expense'
+    vis_all_amounts_full.loc[vis_all_amounts_full['amount'] > 0.0, 'type'] = 'credit'
+    month_data = vis_all_amounts_full.groupby([
+        vis_all_amounts_full.index.year,
+        vis_all_amounts_full.index.month,
         'type',
     ]).sum().reset_index(level=0).rename({'date': 'year'}, axis='columns').reset_index().rename({'date': 'month'}, axis='columns')
     month_data['date'] = pd.to_datetime(month_data[['year', 'month']].assign(DAY=1))
     month_data.loc[month_data['amount'] < 0.0, 'amount'] = month_data.loc[month_data['amount'] < 0.0, 'amount'] * -1
-    stl.write(month_data)
-    stl.plotly_chart(px.bar(
+    #stl.write(month_data)
+    stl.info("Red dashed line is the monthly budget increment")
+    fig = px.bar(
         month_data,
         x='date',
         y='amount',
         color='type',
         title='Monthly expenses and credits',
         barmode='group',
-    ))
+    )
+    fig.add_hline(budgets.loc[budgets['id'] == budget_id, 'increment'].values[0], line_width=3, line_dash="dash", line_color="red")
+    stl.plotly_chart(fig)
     
     if stl.checkbox("Show details"):
         transactions = db.get_transactions(after_date=start_date).sort_values('date', ascending=False)
