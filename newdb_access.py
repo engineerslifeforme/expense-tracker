@@ -486,15 +486,19 @@ class DbAccess(object):
             entry_id,
         )
 
-    def _update(self, table_name: str, field_name: str, in_new_value, item_id: int, use_quotes: bool = False, id_field='id'):
+    def _update(self, table_name: str, field_name: str, in_new_value, item_id: int, use_quotes: bool = False, id_field='id', id_quotes: bool = False):
         if use_quotes:
             new_value = f"'{in_new_value}'"
         else:
             new_value = in_new_value
-        if in_new_value is None:
-            self.cursor.execute(f"UPDATE {table_name} SET {field_name} = ? WHERE {id_field}={item_id}", (None,))
+        if id_quotes:
+            new_id = f"'{item_id}'"
         else:
-            self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE {id_field}={item_id}")
+            new_id = item_id
+        if in_new_value is None:
+            self.cursor.execute(f"UPDATE {table_name} SET {field_name} = ? WHERE {id_field}={new_id}", (None,))
+        else:
+            self.cursor.execute(f"UPDATE {table_name} SET {field_name}={new_value} WHERE {id_field}={new_id}")
         self.con.commit()
 
     def add_statement_transaction(self, date, month:int, year:int, account_id:int, amount:Decimal, description:str = None):
@@ -599,6 +603,45 @@ class DbAccess(object):
 
     def assign_hsa_receipt(self, receipt_path: str, distribution_id: int):
         self._update('hsa_distributions', 'receipt_path', receipt_path, distribution_id, use_quotes=True)
+
+    def assign_hsa_transaction_distribution(self, transaction_id: str, distribution_id: int):
+        self._update('hsa_transactions', 'distribution_taction_id', distribution_id, transaction_id, id_quotes=True)
+
+    def assign_hsa_transaction_expense(self, transaction_id: str, expense_id: int):
+        self._update('hsa_transactions', 'expense_taction_id', expense_id, transaction_id, id_quotes=True)
+
+    def assign_hsa_transaction_receipt(self, transaction_id: str, receipt_path: str):
+        self._update('hsa_transactions', 'receipt_path', receipt_path, transaction_id, id_quotes=True, use_quotes=True)
+
+    def get_hsa_transaction_ids(self):
+        sql = 'SELECT * FROM hsa_transactions'
+        return list(pd.read_sql_query(sql, self.con)['id'])
+    
+    def get_hsa_transactions(self):
+        sql = 'SELECT * FROM hsa_transactions'
+        data = pd.read_sql_query(
+            sql,
+            self.con,
+            dtype={'amount': str},
+            parse_dates=['date'],
+        )
+        data['amount'] = data['amount'].apply(Decimal)
+        return data
+    
+    def add_hsa_transaction(self, date, id: str, amount: Decimal):
+        self._insert(
+            'hsa_transactions',
+            [
+                'id',
+                'date',
+                'amount',
+            ],
+            [
+                id,
+                date,
+                amount
+            ]
+        )
     
     def add_hsa_distribution(self, date, person: str, merchant: str, amount: Decimal, description: str, expense_taction_id: int, distribution_taction_id: int, receipt_path: str, source_id: str, hsa_debit: bool = False, dependent_care: bool = False):
         new_id = self.get_hsa_distributions()['id'].max() + 1
