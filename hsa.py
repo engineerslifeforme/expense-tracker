@@ -29,10 +29,13 @@ def find_charges(db: DbAccess):
     transactions = db.get_transactions()
     st.markdown(f"{len(transactions)} Total Transactions")
     transactions = transactions.loc[transactions['taction_id'].isin(subtotals['taction_id']), :]
-    st.markdown(f"{len(transactions)} Transactions Filtered by category")
+    st.markdown(f"{len(transactions)} Transactions after filtering by category")
     hsa_transactions = db.get_hsa_transactions()
     transactions = transactions.loc[~transactions['taction_id'].isin(hsa_transactions['expense_taction_id']), :]
-    st.markdown(f"{len(transactions)} Transactions Filtered by already mapped")
+    transactions = transactions.loc[~transactions['taction_id'].isin(hsa_transactions['distribution_taction_id']), :]
+    st.markdown(f"{len(transactions)} Transactions after filtering by already mapped")
+    st.markdown(f"{transactions['amount'].sum()} total")
+    transactions['float_amount'] = transactions['amount'].astype(float)
     st.write(transactions)
 
 def assign_hsa_transactions(db: DbAccess):
@@ -50,6 +53,7 @@ def assign_hsa_transactions(db: DbAccess):
     st.write(selected_transaction)
     st.markdown('Matching distribution transactions')
     matching_distribution_tactions = db.get_transactions(amount=selected_transaction['amount'])
+    matching_distribution_tactions["float_amount"] = matching_distribution_tactions["amount"].astype(float)
     st.write(matching_distribution_tactions)
     if st.checkbox('Manually distribution ID selection'):
         selected_distribution_id = st.number_input("Selected Distribution ID", min_value=0, step=1)
